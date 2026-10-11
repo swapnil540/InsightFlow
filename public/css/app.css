@@ -1,0 +1,49 @@
+body {
+  background: #f5f7fb;
+  color: #1f2937;
+}
+
+main {
+  min-height: calc(100vh - 180px);
+}
+
+.navbar-brand {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.hero {
+  padding: 5rem 0 4rem;
+}
+
+.hero-card {
+  background: linear-gradient(135deg, #ffffff 0%, #eef5ff 100%);
+  border: 1px solid rgba(59, 130, 246, 0.12);
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.btn-primary {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.btn-primary:hover {
+  background-color: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.site-footer {
+  background: #0f172a;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 2rem;
+}
+
+.site-footer a {
+  color: #fff;
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  text-decoration: underline;
+}
