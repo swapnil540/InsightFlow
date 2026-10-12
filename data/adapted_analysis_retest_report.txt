@@ -1,0 +1,58 @@
+InsightFlow adapted analysis validation report
+Dataset ID: 456aec4e-901a-4825-91b1-60b1a936e52f
+Run ID: dataset-456aec4e-901a-4825-91b1-60b1a936e52f-1791779272014
+Run status: succeeded
+Rows in: 320
+Rows downloaded: 320
+JSON parse success: 320/320 (100.0%)
+Analyses passing listed field/type checks written: 320/320 (100.0%)
+Invalid or missing analysis count: 0
+Issue summaries outside 8-12 words: 0
+Rows unmatched to source hashes: 0
+Duplicate output hashes: 0
+
+Sentiment distribution (valid analyses):
+- mixed: 13
+- negative: 57
+- neutral: 3
+- positive: 247
+
+Topic distribution (valid analyses):
+- customer_service_resolution_quality: 39
+- customer_service_response_time: 6
+- customer_service_staff_behavior: 24
+- delivery_damage_or_condition: 7
+- delivery_delay: 13
+- fraud_counterfeit_or_misrepresentation: 10
+- fraud_payment_pressure: 5
+- fraud_seller_scamming: 20
+- order_processing_and_expectations: 8
+- product_feature_functionality: 105
+- product_quality: 49
+- product_reliability_durability: 20
+- product_setup_usage: 5
+- product_value: 5
+- shipping_packaging_and_handling: 4
+
+Topics whose parent category differs from original category:
+- REVIEW: textHash=6f3736e6a816f8e6bf248ea99dba1e74b7adc62d; originalCategory=Operational Issues; topic=product_feature_functionality; topicParent=Product Feedback; review=I encountered a minor operational issue with the product, but the seller was responsive and provided a solution.
+- REVIEW: textHash=2824ca5df8a247329c657e1bd3fb9c4c283b64d6; originalCategory=Operational Issues; topic=customer_service_resolution_quality; topicParent=Customer Service; review=The website had some technical issues, but the support team was quick to resolve them.
+- REVIEW: textHash=53dc2b1701487a4be272a8768e1a1efe54bec00b; originalCategory=Product Feedback; topic=customer_service_response_time; topicParent=Customer Service; review=I encountered a minor issue with the product, but the seller was responsive and provided a solution.
+- REVIEW: textHash=e87ab6a8baae83f1c70bf1c3c0e17c5929e78c10; originalCategory=Product Feedback; topic=customer_service_response_time; topicParent=Customer Service; review=I had a minor issue with the product, but the seller's support team was very responsive and provided a satisfactory solution.
+- REVIEW: textHash=e832740e03cafa0e0c72cb414041a288ef6cdc8d; originalCategory=Operational Issues; topic=product_setup_usage; topicParent=Product Feedback; review=I had a great experience with the website, it was user-friendly and easy to navigate.
+- REVIEW: textHash=0371918f0ffb133e69e4132e105e45b1a066e0cf; originalCategory=Operational Issues; topic=product_feature_functionality; topicParent=Product Feedback; review=There were glitches on the website, making it difficult to complete my purchase.
+
+Invalid completion rows:
+- None.
+
+Source reviews absent from the downloaded output:
+- None.
+
+Generated rows that did not match a source hash:
+- None.
+
+Repeated output hashes:
+- None.
+
+Issue summary length warnings (prompt requested 8-12 words):
+- None.

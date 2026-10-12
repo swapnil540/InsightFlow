@@ -1,0 +1,42 @@
+{
+  "datasetId": "456aec4e-901a-4825-91b1-60b1a936e52f",
+  "runId": "dataset-456aec4e-901a-4825-91b1-60b1a936e52f-1791779272014",
+  "status": "succeeded",
+  "rowsIn": 320,
+  "rowsOut": 320,
+  "scoreBefore": null,
+  "scoreAfter": null,
+  "improvementPercent": null,
+  "evaluationMatchesRun": false,
+  "evaluationSource": "s3://proteus-prod-datasets/output/dataset-456aec4e-901a-4825-91b1-60b1a936e52f-1791778526064.lance",
+  "estimatedCredits": 4.0,
+  "actualCredits": null,
+  "minutes": 8.35,
+  "timestamp": "2026-10-12T04:36:07.518691+00:00",
+  "configuration": {
+    "prompt": "You are a customer-feedback analyst. You get a customer review and its original category. Return ONLY valid JSON with these keys: sentiment (positive, neutral, negative or mixed), sentimentScore (number from -1 to 1), topic (exactly one of: customer_service_response_time, customer_service_resolution_quality, customer_service_staff_behavior, product_quality, product_value, product_feature_functionality, product_reliability_durability, product_setup_usage, fraud_seller_scamming, fraud_payment_pressure, fraud_counterfeit_or_misrepresentation, delivery_delay, delivery_damage_or_condition, delivery_tracking_and_updates, shipping_packaging_and_handling, order_processing_and_expectations), severity (integer 1-5, where 5 means fraud, financial harm or safety), isComplaint (true or false), issueSummary (exactly 8 to 12 words; count the words before returning), suggestedAction (one sentence). Handle negation correctly: 'I was not a victim of fraud' and 'No signs of fraudulent activity' are positive and not complaints.",
+    "columnMapping": {
+      "universal_prompt": "You are a customer-feedback analyst. You get a customer review and its original category. Return ONLY valid JSON with these keys: sentiment (positive, neutral, negative or mixed), sentimentScore (number from -1 to 1), topic (exactly one of: customer_service_response_time, customer_service_resolution_quality, customer_service_staff_behavior, product_quality, product_value, product_feature_functionality, product_reliability_durability, product_setup_usage, fraud_seller_scamming, fraud_payment_pressure, fraud_counterfeit_or_misrepresentation, delivery_delay, delivery_damage_or_condition, delivery_tracking_and_updates, shipping_packaging_and_handling, order_processing_and_expectations), severity (integer 1-5, where 5 means fraud, financial harm or safety), isComplaint (true or false), issueSummary (exactly 8 to 12 words; count the words before returning), suggestedAction (one sentence). Handle negation correctly: 'I was not a victim of fraud' and 'No signs of fraudulent activity' are positive and not complaints.",
+      "context": [
+        "review",
+        "category"
+      ]
+    },
+    "recipes": {
+      "recipes": {
+        "deduplication": true,
+        "prompt_rephrase": false,
+        "reasoning_traces": false
+      }
+    },
+    "blueprint": "Output only a single valid JSON object. No markdown fences, no commentary. The issueSummary must contain exactly 8 to 12 whitespace-separated words; count and verify them before returning.",
+    "brandControls": {
+      "blueprint": "Output only a single valid JSON object. No markdown fences, no commentary. The issueSummary must contain exactly 8 to 12 whitespace-separated words; count and verify them before returning.",
+      "hallucination_mitigation": false
+    },
+    "jobSpecification": {
+      "max_rows": 320,
+      "idempotency_key": "insightflow-phase1-full-summary-retest-20261012-v1"
+    }
+  }
+}

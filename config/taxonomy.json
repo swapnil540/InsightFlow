@@ -1,0 +1,98 @@
+[
+  {
+    "key": "customer_service_response_time",
+    "label": "Response Time",
+    "parentCategory": "Customer Service",
+    "description": "Feedback about how quickly customer support replied or resolved issues."
+  },
+  {
+    "key": "customer_service_resolution_quality",
+    "label": "Resolution Quality",
+    "parentCategory": "Customer Service",
+    "description": "Feedback on whether support provided a clear, effective, and satisfactory fix."
+  },
+  {
+    "key": "customer_service_staff_behavior",
+    "label": "Support Experience",
+    "parentCategory": "Customer Service",
+    "description": "Comments about friendliness, professionalism, helpfulness, or empathy from support staff."
+  },
+  {
+    "key": "product_quality",
+    "label": "Product Quality",
+    "parentCategory": "Product Feedback",
+    "description": "Reviews about defects, craftsmanship, material quality, or overall product condition."
+  },
+  {
+    "key": "product_value",
+    "label": "Value for Money",
+    "parentCategory": "Product Feedback",
+    "description": "Comments on price, affordability, worth, or value relative to expectations."
+  },
+  {
+    "key": "product_feature_functionality",
+    "label": "Features and Functionality",
+    "parentCategory": "Product Feedback",
+    "description": "Mentions of usefulness, innovation, performance, capabilities, and feature satisfaction."
+  },
+  {
+    "key": "product_reliability_durability",
+    "label": "Reliability and Durability",
+    "parentCategory": "Product Feedback",
+    "description": "Feedback about how consistently the product works, lasts, or holds up over time."
+  },
+  {
+    "key": "product_setup_usage",
+    "label": "Setup and Usage",
+    "parentCategory": "Product Feedback",
+    "description": "Comments about installation, ease of use, learning curve, or day-to-day experience."
+  },
+  {
+    "key": "fraud_seller_scamming",
+    "label": "Seller Scam Behavior",
+    "parentCategory": "Fraud and Scam",
+    "description": "Reviews describing deceptive seller behavior, fake promises, or scam-like conduct."
+  },
+  {
+    "key": "fraud_payment_pressure",
+    "label": "Extra Payment Requests",
+    "parentCategory": "Fraud and Scam",
+    "description": "Reports of being pressured to pay more money after purchase or during a transaction."
+  },
+  {
+    "key": "fraud_counterfeit_or_misrepresentation",
+    "label": "Counterfeit or Misrepresentation",
+    "parentCategory": "Fraud and Scam",
+    "description": "Feedback about fake products, misleading claims, or products not matching what was advertised."
+  },
+  {
+    "key": "delivery_delay",
+    "label": "Delivery Delays",
+    "parentCategory": "Operational Issues",
+    "description": "Complaints or notes about slower-than-expected shipping or late delivery."
+  },
+  {
+    "key": "delivery_damage_or_condition",
+    "label": "Damaged or Poor Condition",
+    "parentCategory": "Operational Issues",
+    "description": "Reviews about damaged products, poor packaging, or items arriving in bad condition."
+  },
+  {
+    "key": "delivery_tracking_and_updates",
+    "label": "Order Tracking and Updates",
+    "parentCategory": "Operational Issues",
+    "description": "Comments on updates, tracking quality, communication, or lack of visibility during fulfillment."
+  },
+  {
+    "key": "shipping_packaging_and_handling",
+    "label": "Packaging and Handling",
+    "parentCategory": "Operational Issues",
+    "description": "Feedback about packaging quality, protective handling, and delivery presentation."
+  },
+  {
+    "key": "order_processing_and_expectations",
+    "label": "Website & ordering",
+    "parentCategory": "Operational Issues",
+    "description": "Reports about order errors, processing delays, fulfillment issues, or mismatched expectations."
+  }
+]
