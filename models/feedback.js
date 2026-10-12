@@ -23,6 +23,7 @@ const feedbackSchema = new mongoose.Schema({
   analysis: { type: embeddedAnalysisSchema, required: true },
   seedBatch: { type: String },
   seedKey: { type: String },
+  importBatch: { type: String },
 }, { versionKey: false });
 
 // Content hashes deliberately are not unique: the source CSV contains duplicates.
@@ -34,5 +35,6 @@ feedbackSchema.index({ originalCategory: 1 }, { name: 'feedback_original_categor
 feedbackSchema.index({ source: 1 }, { name: 'feedback_source' });
 feedbackSchema.index({ text: 'text' }, { name: 'feedback_text_search' });
 feedbackSchema.index({ seedKey: 1 }, { unique: true, sparse: true, name: 'seed_row_idempotency' });
+feedbackSchema.index({ importBatch: 1 }, { name: 'feedback_import_batch' });
 
 module.exports = mongoose.models.Feedback || mongoose.model('Feedback', feedbackSchema);

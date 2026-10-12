@@ -25,6 +25,22 @@ function validMongoUri(value) {
   } catch { return false; }
 }
 
+async function ensureFeedbackSeedKeyIndex(Feedback) {
+  const indexes = await Feedback.collection.indexes();
+  const existing = indexes.find((index) => index.name === 'seed_row_idempotency'
+    || (index.key?.seedKey === 1));
+  if (existing) {
+    if (existing.unique !== true || existing.sparse !== true) {
+      // Remove only the seedKey index that could reject documents without a seedKey.
+      await Feedback.collection.dropIndex(existing.name);
+    }
+  }
+  await Feedback.collection.createIndex(
+    { seedKey: 1 },
+    { unique: true, sparse: true, name: 'seed_row_idempotency' },
+  );
+}
+
 async function main() {
   const args = process.argv.slice(2);
   let write = false;
@@ -64,6 +80,7 @@ async function main() {
     const AdaptionRun = require('../models/adaptionRun');
     const models = [Feedback, Analysis, Issue, Report, AdaptionRun];
     await Promise.all(models.map((Model) => Model.createCollection()));
+    await ensureFeedbackSeedKeyIndex(Feedback);
     await Promise.all(models.map((Model) => Model.ensureIndexes()));
 
     if (write) {
