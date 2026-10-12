@@ -6,11 +6,16 @@
         <h1 class="h2 fw-bold mb-1">Feedback</h1>
         <p class="text-secondary mb-0">Search and explore the feedback behind your customer experience.</p>
       </div>
+      <div class="d-flex flex-wrap align-items-center justify-content-between justify-content-md-end gap-3">
       <div class="feedback-totals text-md-end">
         <div class="fw-semibold"><%= totals.entries.toLocaleString() %> entries</div>
         <div class="small text-secondary"><%= totals.uniqueTexts.toLocaleString() %> unique texts</div>
       </div>
+      <a class="btn btn-primary" href="/feedback/new"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Add feedback</a>
+      </div>
     </div>
+
+    <%- include('../partials/notice', { notice }) %>
 
     <section class="surface-card mb-4" aria-label="Feedback filters">
       <form method="get" action="/feedback" class="row g-3 align-items-end">

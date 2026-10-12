@@ -1,0 +1,57 @@
+<section class="placeholder-page">
+  <div class="container">
+    <div class="surface-card add-feedback-card mx-auto">
+      <div class="mb-4">
+        <a class="small text-decoration-none" href="/feedback"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Back to feedback</a>
+        <p class="eyebrow mt-4 mb-2">Share a customer voice</p>
+        <h1 class="h2 fw-bold mb-2">Add feedback</h1>
+        <p class="text-secondary mb-0">Add a review, survey response, or support note. InsightFlow will label it using the available analysis.</p>
+      </div>
+
+      <form method="post" action="/feedback" id="addFeedbackForm">
+        <div class="mb-4">
+          <label class="form-label fw-semibold" for="feedbackText">Feedback <span class="text-danger">*</span></label>
+          <textarea class="form-control <%= errors.text ? 'is-invalid' : '' %>" id="feedbackText" name="text" rows="5" minlength="10" maxlength="1000" required aria-describedby="feedbackTextHelp feedbackTextError"><%= values.text || '' %></textarea>
+          <div class="d-flex justify-content-between gap-3 mt-2">
+            <div class="form-text" id="feedbackTextHelp">Enter 10 to 1,000 characters.</div>
+            <div class="form-text text-nowrap"><span id="feedbackCharacterCount"><%= (values.text || '').length %></span> / 1,000</div>
+          </div>
+          <% if (errors.text) { %><div class="invalid-feedback d-block" id="feedbackTextError"><%= errors.text %></div><% } %>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label fw-semibold" for="feedbackCategory">Category <span class="text-secondary fw-normal">(optional)</span></label>
+            <select class="form-select <%= errors.category ? 'is-invalid' : '' %>" id="feedbackCategory" name="category" aria-describedby="feedbackCategoryError">
+              <option value="">Let InsightFlow decide</option>
+              <% categories.forEach((category) => { %><option value="<%= category %>" <%= values.category === category ? 'selected' : '' %>><%= category %></option><% }); %>
+            </select>
+            <% if (errors.category) { %><div class="invalid-feedback" id="feedbackCategoryError"><%= errors.category %></div><% } %>
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label fw-semibold" for="feedbackSource">Source <span class="text-danger">*</span></label>
+            <select class="form-select <%= errors.source ? 'is-invalid' : '' %>" id="feedbackSource" name="source" required aria-describedby="feedbackSourceError">
+              <option value="">Choose a source</option>
+              <% sources.forEach((source) => { %><option value="<%= source %>" <%= values.source === source ? 'selected' : '' %>><%= source %></option><% }); %>
+            </select>
+            <% if (errors.source) { %><div class="invalid-feedback" id="feedbackSourceError"><%= errors.source %></div><% } %>
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label fw-semibold" for="feedbackDate">Date <span class="text-secondary fw-normal">(optional)</span></label>
+            <input class="form-control <%= errors.date ? 'is-invalid' : '' %>" id="feedbackDate" type="date" name="date" value="<%= values.date || '' %>" aria-describedby="feedbackDateError" />
+            <% if (errors.date) { %><div class="invalid-feedback" id="feedbackDateError"><%= errors.date %></div><% } %>
+          </div>
+        </div>
+
+        <div class="d-flex flex-column flex-sm-row justify-content-end gap-2 mt-4">
+          <a class="btn btn-light" href="/feedback">Cancel</a>
+          <button class="btn btn-primary px-4" type="submit" id="submitFeedbackButton">
+            <span class="submit-label"><i class="bi bi-check2 me-2" aria-hidden="true"></i>Add feedback</span>
+            <span class="submit-loading d-none"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Saving…</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+<script src="/js/feedback-form.js" defer></script>

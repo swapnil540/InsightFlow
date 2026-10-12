@@ -12,10 +12,14 @@ const {
   LIMIT_VALUES,
   parseFilters,
 } = require('../services/filters');
-const { getFeedbackPage } = require('../services/feedbackService');
+const { getFeedbackPage, validateNewFeedback, createFeedback } = require('../services/feedbackService');
 const taxonomy = require('../config/taxonomy');
 
 const router = express.Router();
+
+const FEEDBACK_NOTICES = {
+  added: { type: 'success', icon: 'check-circle-fill', message: 'Feedback added successfully.' },
+};
 
 router.get('/', (req, res) => {
   res.render('pages/home', {
@@ -61,7 +65,7 @@ router.get('/feedback', async (req, res) => {
       ...row,
       topicLabel: topic?.label || 'Unknown topic',
       topicParentCategory: topic?.parentCategory || row.feedback.originalCategory,
-      allHref: feedbackUrl(filters, { view: 'all', q: row.feedback.text, page: '1' }),
+      allHref: feedbackUrl(filters, { view: 'all', q: row.feedback.text.slice(0, 100), page: '1' }),
     };
   });
   const chipDefinitions = [
@@ -109,7 +113,37 @@ router.get('/feedback', async (req, res) => {
     resetHref: '/feedback',
     groupedHref: feedbackUrl(filters, { view: 'grouped', sort: 'mentions', page: '1' }),
     allEntriesHref: feedbackUrl(filters, { view: 'all', sort: 'newest', page: '1' }),
+    notice: typeof req.query.notice === 'string' ? FEEDBACK_NOTICES[req.query.notice] : undefined,
   });
+});
+
+router.get('/feedback/new', (req, res) => {
+  res.render('pages/feedback-new', {
+    pageTitle: 'Add feedback',
+    activeNav: 'feedback',
+    categories: CATEGORY_VALUES,
+    sources: SOURCE_VALUES,
+    values: { text: '', category: '', source: 'Review', date: new Date().toISOString().slice(0, 10) },
+    errors: {},
+  });
+});
+
+router.post('/feedback', async (req, res) => {
+  const { errors, values, date } = validateNewFeedback(req.body);
+  if (Object.keys(errors).length) {
+    return res.status(400).render('pages/feedback-new', {
+      pageTitle: 'Add feedback',
+      activeNav: 'feedback',
+      categories: CATEGORY_VALUES,
+      sources: SOURCE_VALUES,
+      values,
+      errors,
+    });
+  }
+
+  await createFeedback({ ...values, date });
+  const params = new URLSearchParams({ view: 'all', q: values.text.slice(0, 100), notice: 'added' });
+  res.redirect(`/feedback?${params.toString()}`);
 });
 
 const placeholders = [
