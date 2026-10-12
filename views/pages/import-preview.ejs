@@ -1,0 +1,70 @@
+<section class="placeholder-page import-preview-page">
+  <div class="container">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-4">
+      <div>
+        <a href="/import" class="small text-decoration-none"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Choose another file</a>
+        <p class="eyebrow mt-3 mb-2">Review before adding</p>
+        <h1 class="h2 fw-bold mb-1">CSV preview</h1>
+        <p class="text-secondary mb-0"><%= fileName %> · <%= preview.totalRows.toLocaleString() %> rows found</p>
+      </div>
+      <form method="post" action="/import/confirm">
+        <input type="hidden" name="previewId" value="<%= preview.previewId %>" />
+        <button class="btn btn-primary px-4" type="submit" <%= preview.validRows.length ? '' : 'disabled' %>><i class="bi bi-check2-circle me-2" aria-hidden="true"></i>Confirm import</button>
+      </form>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-lg-2"><div class="import-stat"><span>Rows found</span><strong><%= preview.totalRows.toLocaleString() %></strong></div></div>
+      <div class="col-6 col-lg-2"><div class="import-stat"><span>Valid rows</span><strong><%= preview.validRows.length.toLocaleString() %></strong></div></div>
+      <div class="col-6 col-lg-2"><div class="import-stat"><span>Skipped rows</span><strong><%= preview.skippedCount.toLocaleString() %></strong></div></div>
+      <div class="col-6 col-lg-2"><div class="import-stat"><span>Duplicates in file</span><strong><%= preview.duplicateCount.toLocaleString() %></strong></div></div>
+      <div class="col-6 col-lg-2"><div class="import-stat"><span>Already in database</span><strong><%= preview.existingTextCount.toLocaleString() %> texts</strong></div></div>
+      <div class="col-6 col-lg-2"><div class="import-stat"><span>Need analysis</span><strong><%= preview.newAnalysisCount.toLocaleString() %> texts</strong></div></div>
+    </div>
+
+    <div class="row g-4 mb-4">
+      <div class="col-12 col-lg-5">
+        <section class="surface-card h-100">
+          <h2 class="h5 fw-bold mb-3">Detected column mapping</h2>
+          <dl class="mapping-list mb-0">
+            <% Object.entries(preview.mapping).forEach(([field, column]) => { %>
+              <div><dt><%= ({ text: 'Feedback text', category: 'Category', source: 'Source', date: 'Date' })[field] %></dt><dd><%= column || 'Not provided' %></dd></div>
+            <% }); %>
+          </dl>
+          <p class="small text-secondary mt-3 mb-0">Blank source cells will be stored as Review. Blank categories use the detected topic’s parent category; blank dates use the import time.</p>
+        </section>
+      </div>
+      <div class="col-12 col-lg-7">
+        <section class="surface-card h-100">
+          <h2 class="h5 fw-bold mb-3">Skipped rows</h2>
+          <% if (preview.skippedCount) { %>
+            <ul class="reason-counts mb-3">
+              <% Object.entries(preview.skippedByReason).forEach(([reason, count]) => { %><li><span><%= reasonLabels[reason] || reason %></span><strong><%= count %></strong></li><% }); %>
+            </ul>
+            <div class="small text-secondary">
+              <% preview.skippedRows.slice(0, 20).forEach((row) => { %><div>Row <%= row.line %>: <%= row.reasons.map((reason) => reasonLabels[reason] || reason).join(', ') %></div><% }); %>
+              <% if (preview.skippedCount > 20) { %><div class="mt-1">Showing the first 20 skipped rows.</div><% } %>
+            </div>
+          <% } else { %><p class="text-secondary mb-0">No rows were skipped.</p><% } %>
+        </section>
+      </div>
+    </div>
+
+    <section class="surface-card p-0 overflow-hidden">
+      <div class="p-3 p-md-4 pb-2"><h2 class="h5 fw-bold mb-1">First 10 valid rows</h2><p class="small text-secondary mb-0">Repeated texts are kept as separate feedback entries; each distinct text is analyzed once.</p></div>
+      <% if (preview.previewRows.length) { %>
+        <div class="table-responsive"><table class="table import-preview-table align-middle mb-0">
+          <thead><tr><th>Row</th><th>Feedback</th><th>Category</th><th>Source</th><th>Date</th></tr></thead>
+          <tbody><% preview.previewRows.forEach((row) => { %>
+            <tr>
+              <td><%= row.line %></td><td><%= row.text %></td><td><%= row.category || 'Auto-detect' %></td>
+              <td><%= row.source %><%= row.sourceDefaulted ? ' (default)' : '' %></td>
+              <td><%= row.date ? row.date.toLocaleDateString() : 'Import time' %></td>
+            </tr>
+          <% }); %></tbody>
+        </table></div>
+      <% } else { %><%- include('../partials/empty-state', { title: 'No valid rows to import', message: 'Fix the skipped rows in your CSV and upload it again.' }) %><% } %>
+    </section>
+    <div class="d-flex justify-content-end mt-4"><a class="btn btn-outline-secondary" href="/import">Import another file</a></div>
+  </div>
+</section>

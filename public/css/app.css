@@ -49,6 +49,25 @@ a:hover { color: var(--if-brand-dark); }
 }
 .placeholder-card { max-width: 48rem; }
 .add-feedback-card { max-width: 52rem; padding: clamp(1.25rem, 4vw, 2.5rem); }
+.import-card { max-width: 48rem; padding: clamp(1.25rem, 4vw, 2.5rem); }
+.import-result-card { max-width: 38rem; padding: clamp(1.5rem, 5vw, 3rem); }
+.upload-dropzone { padding: clamp(1.25rem, 4vw, 2rem); border: 1.5px dashed #cdd8ec; border-radius: .9rem; background: #fafbfe; text-align: center; }
+.upload-icon { width: 3rem; height: 3rem; display: inline-grid; place-items: center; margin: 0 auto .75rem; border-radius: 1rem; background: #eaf0ff; color: var(--if-brand); font-size: 1.4rem; cursor: pointer; }
+.upload-dropzone .form-control { max-width: 32rem; margin: .35rem auto 0; text-align: left; }
+.import-help { padding-top: 1.25rem; border-top: 1px solid var(--if-border); }
+.import-stat { height: 100%; padding: 1rem; border: 1px solid var(--if-border); border-radius: .8rem; background: #fff; }
+.import-stat span { display: block; color: var(--if-muted); font-size: .78rem; font-weight: 650; }
+.import-stat strong { display: block; margin-top: .2rem; color: var(--if-ink); font-size: 1.2rem; }
+.mapping-list > div, .reason-counts li { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding: .45rem 0; border-bottom: 1px solid #edf0f5; }
+.mapping-list dt { color: #52627a; font-weight: 600; }
+.mapping-list dd { margin: 0; color: var(--if-ink); text-align: right; overflow-wrap: anywhere; }
+.reason-counts { padding: 0; list-style: none; }
+.reason-counts li:last-child { border-bottom: 0; }
+.reason-counts span { color: #52627a; }
+.reason-counts strong { color: var(--if-ink); }
+.import-preview-table { min-width: 680px; }
+.import-preview-table th { background: #f8faff; color: var(--if-muted); font-size: .75rem; text-transform: uppercase; }
+.import-preview-table td { max-width: 32rem; overflow-wrap: anywhere; }
 .surface-card { padding: clamp(1.25rem, 3vw, 2rem); }
 .source-chip { display: inline-flex; align-items: center; gap: .4rem; padding: .3rem .65rem; border-radius: 999px; background: #f0f3f8; color: #52627a; font-size: .82rem; }
 .feedback-page .form-label { color: #52627a; font-size: .85rem; font-weight: 650; }

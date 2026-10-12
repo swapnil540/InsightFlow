@@ -14,12 +14,26 @@ const {
 } = require('../services/filters');
 const { getFeedbackPage, validateNewFeedback, createFeedback } = require('../services/feedbackService');
 const taxonomy = require('../config/taxonomy');
+const multer = require('multer');
+const { prepareImportPreview, confirmImport } = require('../services/csvImportService');
+const { getImport, deleteImport } = require('../services/importStore');
 
 const router = express.Router();
 
 const FEEDBACK_NOTICES = {
   added: { type: 'success', icon: 'check-circle-fill', message: 'Feedback added successfully.' },
 };
+const IMPORT_NOTICES = {
+  expired: { type: 'warning', icon: 'clock-history', message: 'This preview expired. Upload the CSV again to continue.' },
+};
+const csvUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  fileFilter: (req, file, callback) => {
+    if (!/\.csv$/i.test(file.originalname)) return callback(new Error('Upload a file with the .csv extension.'));
+    callback(null, true);
+  },
+}).single('file');
 
 router.get('/', (req, res) => {
   res.render('pages/home', {
@@ -146,9 +160,86 @@ router.post('/feedback', async (req, res) => {
   res.redirect(`/feedback?${params.toString()}`);
 });
 
+router.get('/import/template.csv', (req, res) => {
+  const template = 'review,category,source,date\r\n"A customer feedback example.",Product Feedback,Review,2026-10-12\r\n';
+  res.type('text/csv').attachment('insightflow-import-template.csv').send(template);
+});
+
+router.get('/import', (req, res) => {
+  res.render('pages/import', {
+    pageTitle: 'Import feedback',
+    activeNav: 'import',
+    notice: typeof req.query.notice === 'string' ? IMPORT_NOTICES[req.query.notice] : undefined,
+  });
+});
+
+router.post('/import/preview', (req, res, next) => {
+  csvUpload(req, res, (uploadError) => {
+    if (uploadError) {
+      const isSizeError = uploadError instanceof multer.MulterError && uploadError.code === 'LIMIT_FILE_SIZE';
+      const message = isSizeError ? 'The CSV file must be 5 MB or smaller.' : 'Upload one CSV file with a .csv extension.';
+      return res.status(400).render('pages/import', {
+        pageTitle: 'Import feedback',
+        activeNav: 'import',
+        notice: { type: 'danger', icon: 'exclamation-triangle', message },
+      });
+    }
+    next();
+  });
+}, async (req, res) => {
+  if (!req.file) {
+    return res.status(400).render('pages/import', {
+      pageTitle: 'Import feedback',
+      activeNav: 'import',
+      notice: { type: 'danger', icon: 'exclamation-triangle', message: 'Choose a CSV file to preview.' },
+    });
+  }
+  try {
+    const preview = await prepareImportPreview(req.file.buffer);
+    res.render('pages/import-preview', {
+      pageTitle: 'Preview CSV import',
+      activeNav: 'import',
+      fileName: req.file.originalname,
+      preview,
+      reasonLabels: {
+        empty: 'Empty feedback row',
+        too_short: 'Feedback shorter than 5 characters',
+        too_long: 'Feedback longer than 1,000 characters',
+        bad_date: 'Invalid date',
+        invalid_category: 'Invalid category',
+        invalid_source: 'Invalid source',
+      },
+    });
+  } catch (error) {
+    const message = error.message.includes('Database is not connected')
+      ? 'The database is not connected. Reconnect and try the preview again.'
+      : error.message;
+    res.status(400).render('pages/import', {
+      pageTitle: 'Import feedback',
+      activeNav: 'import',
+      notice: { type: 'danger', icon: 'exclamation-triangle', message },
+    });
+  }
+});
+
+router.post('/import/confirm', async (req, res) => {
+  const previewId = typeof req.body.previewId === 'string' ? req.body.previewId : '';
+  const stored = getImport(previewId);
+  if (!stored) return res.redirect('/import?notice=expired');
+  if (!stored.rows.length) return res.redirect('/import');
+
+  const result = await confirmImport(stored.rows);
+  deleteImport(previewId);
+  res.render('pages/import-result', {
+    pageTitle: 'Import complete',
+    activeNav: 'import',
+    ...result,
+    skippedCount: stored.metadata.skippedCount || 0,
+  });
+});
+
 const placeholders = [
   { path: '/dashboard', key: 'dashboard', title: 'Dashboard', phase: 'Planned for Phase 5', icon: 'bar-chart-line', description: 'A filterable overview of feedback volume, sentiment, topics, and trends will appear here.' },
-  { path: '/import', key: 'import', title: 'Import feedback', phase: 'Building in Phase 3', icon: 'cloud-arrow-up', description: 'Preview and import a feedback CSV here. CSV import is coming in a later Phase 3 step.' },
   { path: '/insights', key: 'insights', title: 'Insights', phase: 'Planned for Phase 6', icon: 'lightbulb', description: 'Prioritized customer issues, supporting evidence, and actionable recommendations will appear here.' },
   { path: '/issues', key: 'issues', title: 'Issues', phase: 'Planned for Phase 7', icon: 'kanban', description: 'Track issue status, ownership, and team notes here.' },
   { path: '/reports', key: 'reports', title: 'Reports', phase: 'Planned for Phase 7', icon: 'file-earmark-bar-graph', description: 'Create and share reports built from feedback and issue snapshots here.' },

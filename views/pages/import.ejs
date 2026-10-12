@@ -1,0 +1,25 @@
+<section class="placeholder-page">
+  <div class="container">
+    <div class="surface-card import-card mx-auto">
+      <p class="eyebrow mb-2">Bring in customer voices</p>
+      <h1 class="h2 fw-bold mb-2">Import feedback</h1>
+      <p class="text-secondary mb-4">Upload a CSV to review its rows before they are added to InsightFlow.</p>
+      <%- include('../partials/notice', { notice }) %>
+
+      <form method="post" action="/import/preview" enctype="multipart/form-data" class="upload-dropzone">
+        <label class="upload-icon" for="feedbackCsv"><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i><span class="visually-hidden">Choose a CSV file</span></label>
+        <label class="form-label fw-semibold" for="feedbackCsv">Choose a CSV file</label>
+        <input class="form-control" id="feedbackCsv" type="file" name="file" accept=".csv,text/csv" required />
+        <p class="form-text mb-0">CSV only · up to 5 MB · maximum 10,000 rows</p>
+        <button class="btn btn-primary mt-3" type="submit"><i class="bi bi-eye me-2" aria-hidden="true"></i>Preview import</button>
+      </form>
+
+      <div class="import-help mt-4">
+        <h2 class="h6 fw-bold">Expected columns</h2>
+        <p class="small text-secondary mb-2"><code>review,category,source,date</code></p>
+        <p class="small text-secondary">The text column may also be named text, feedback, comment, or message. Category, source, and date are optional; additional columns are ignored. Blank source values default to Review.</p>
+        <a href="/import/template.csv" class="small text-decoration-none"><i class="bi bi-download me-1" aria-hidden="true"></i>Download CSV template</a>
+      </div>
+    </div>
+  </div>
+</section>
