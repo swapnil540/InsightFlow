@@ -10,10 +10,14 @@
   let latestWindow = null;
   let requestId = 0;
   let topicRequestId = 0;
+  let trendRequestId = 0;
   let debounceTimer;
   let statsData = null;
   let topicData = [];
+  let trendData = null;
   let issueMetric = 'mentions';
+  let trendGranularity = 'week';
+  let trendMetric = 'total';
   const charts = {};
   const sentimentColors = { positive: '#159a83', mixed: '#d99a24', neutral: '#77869a', negative: '#d85645' };
   const sentimentLabels = ['positive', 'neutral', 'mixed', 'negative'];
@@ -89,6 +93,62 @@
       data: { labels, datasets: sentimentLabels.map((key) => ({ label: `${key[0].toUpperCase()}${key.slice(1)}`, data: rows.map((row) => Number(row[key] || 0)), backgroundColor: sentimentColors[key], borderRadius: 3 })) },
       options: { ...chartOptions((event, elements) => { if (elements.length) { controls.category.value = rows[elements[0].index].category; loadStats(); } }), scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } } },
     }, `Sentiment by category: ${rows.map((row) => `${row.category}, ${sentimentLabels.map((key) => `${key} ${formatNumber(row[key])}`).join(', ')}`).join('; ')}.`);
+  }
+
+  function renderTrend(data) {
+    const buckets = data.buckets || [];
+    const labels = buckets.map((bucket) => bucket.date);
+    const line = (label, key, color) => ({
+      label,
+      data: buckets.map((bucket) => Number(bucket[key] || 0)),
+      borderColor: color,
+      backgroundColor: color,
+      borderWidth: 2,
+      pointRadius: buckets.length > 45 ? 0 : 2,
+      pointHoverRadius: 5,
+      tension: 0.25,
+      fill: false,
+    });
+    let datasets;
+    if (trendMetric === 'sentiment') {
+      datasets = sentimentLabels.map((key) => line(`${key[0].toUpperCase()}${key.slice(1)}`, key, sentimentColors[key]));
+    } else if (trendMetric === 'complaints') {
+      datasets = [line('Complaints', 'complaints', '#d85645')];
+    } else {
+      datasets = [line('Total feedback', 'total', '#5579d8')];
+    }
+    const total = datasets.reduce((sum, dataset) => sum + dataset.data.reduce((part, value) => part + value, 0), 0);
+    if (!buckets.length || !total) return chartState('trend', 'No feedback matches these filters. Reset filters to see the trend.');
+    replaceChart('trend', {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        ...chartOptions(),
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          x: { ticks: { maxTicksLimit: 10, maxRotation: 0 }, grid: { display: false } },
+          y: { beginAtZero: true, ticks: { precision: 0 } },
+        },
+      },
+    }, `${trendMetric === 'sentiment' ? 'Feedback by sentiment' : trendMetric === 'complaints' ? 'Complaint' : 'Total feedback'} per ${data.granularity}: ${datasets.map((dataset) => `${dataset.label}, ${formatNumber(dataset.data.reduce((sum, value) => sum + value, 0))} in total`).join('; ')}.`);
+  }
+
+  function loadTrend(query, id) {
+    const trendId = ++trendRequestId;
+    chartState('trend', 'Loading feedback trend…');
+    const params = new URLSearchParams(query);
+    params.set('granularity', trendGranularity);
+    return fetch(`/api/trends?${params.toString()}`, { headers: { Accept: 'application/json' } })
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || 'Unable to load the feedback trend.');
+        if (id !== requestId || trendId !== trendRequestId) return;
+        trendData = payload;
+        renderTrend(trendData);
+      })
+      .catch((error) => {
+        if (id === requestId && trendId === trendRequestId) chartState('trend', `${error.message || 'Unable to load the feedback trend.'} Retry by changing a filter.`);
+      });
   }
 
   function loadTopics(query, id) {
@@ -186,6 +246,7 @@
     chartState('sentiment', 'Loading sentiment distribution…');
     chartState('category', 'Loading category breakdown…');
     const topicsRequest = loadTopics(query, id);
+    const trendRequest = loadTrend(query, id);
     try {
       const response = await fetch(`/api/stats${query ? `?${query}` : ''}`, { headers: { Accept: 'application/json' } });
       const payload = await response.json();
@@ -204,7 +265,7 @@
     } finally {
       if (id === requestId) {
         setLoading(false);
-        await topicsRequest;
+        await Promise.all([topicsRequest, trendRequest]);
       }
     }
   }
@@ -259,6 +320,24 @@
       item.setAttribute('aria-pressed', String(selected));
     });
     if (topicData) renderIssues(topicData);
+  }));
+  document.querySelectorAll('[data-trend-granularity]').forEach((button) => button.addEventListener('click', () => {
+    trendGranularity = button.dataset.trendGranularity;
+    document.querySelectorAll('[data-trend-granularity]').forEach((item) => {
+      const selected = item === button;
+      item.classList.toggle('active', selected);
+      item.setAttribute('aria-pressed', String(selected));
+    });
+    loadTrend(queryString(readFilters()), requestId);
+  }));
+  document.querySelectorAll('[data-trend-metric]').forEach((button) => button.addEventListener('click', () => {
+    trendMetric = button.dataset.trendMetric;
+    document.querySelectorAll('[data-trend-metric]').forEach((item) => {
+      const selected = item === button;
+      item.classList.toggle('active', selected);
+      item.setAttribute('aria-pressed', String(selected));
+    });
+    if (trendData) renderTrend(trendData);
   }));
 
   applyQuery();

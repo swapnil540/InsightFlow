@@ -59,6 +59,18 @@
           <p class="visually-hidden" id="categoryChartSummary"></p>
           <div class="dashboard-chart-state small text-secondary" id="categoryChartState" role="status" hidden></div>
         </article></div>
+        <div class="col-12"><article class="surface-card dashboard-chart-card" aria-labelledby="trendChartTitle">
+          <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-2">
+            <div><h3 class="h6 fw-bold mb-1" id="trendChartTitle">Feedback over time</h3><p class="small text-secondary mb-0">Track changes across the selected date range.</p></div>
+            <div class="d-flex flex-wrap gap-2">
+              <div class="btn-group btn-group-sm" role="group" aria-label="Trend time grouping"><button class="btn btn-outline-secondary" type="button" data-trend-granularity="day" aria-pressed="false">Day</button><button class="btn btn-outline-secondary active" type="button" data-trend-granularity="week" aria-pressed="true">Week</button></div>
+              <div class="btn-group btn-group-sm" role="group" aria-label="Trend metric"><button class="btn btn-outline-secondary active" type="button" data-trend-metric="total" aria-pressed="true">Total</button><button class="btn btn-outline-secondary" type="button" data-trend-metric="complaints" aria-pressed="false">Complaints</button><button class="btn btn-outline-secondary" type="button" data-trend-metric="sentiment" aria-pressed="false">By sentiment</button></div>
+            </div>
+          </div>
+          <div class="dashboard-chart-wrap dashboard-chart-wrap-tall"><canvas id="trendChart" aria-label="Line chart showing feedback counts over time" role="img"></canvas></div>
+          <p class="visually-hidden" id="trendChartSummary"></p>
+          <div class="dashboard-chart-state small text-secondary" id="trendChartState" role="status" hidden></div>
+        </article></div>
       </div>
     </section>
   </div>
