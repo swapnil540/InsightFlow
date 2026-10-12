@@ -12,7 +12,8 @@
     "dev": "nodemon server.js",
     "seed:dry": "node -r dotenv/config scripts/seed.js",
     "seed:write": "node -r dotenv/config scripts/seed.js --write",
-    "seed:verify": "node -r dotenv/config scripts/seed.js --verify"
+    "seed:verify": "node -r dotenv/config scripts/seed.js --verify",
+    "eval:classifier": "node scripts/eval-classifier.js"
   },
   "repository": {
     "type": "git",
