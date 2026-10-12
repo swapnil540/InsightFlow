@@ -1,28 +1,30 @@
-<div class="container hero">
-  <div class="row align-items-center g-5">
+<section class="container py-5">
+  <div class="row align-items-center g-5 mb-5">
     <div class="col-lg-7">
-      <span class="badge text-bg-primary mb-3">Phase 0 live app</span>
-      <h1 class="display-5 fw-bold mb-3">InsightFlow, turn customer feedback into decisions</h1>
-      <p class="lead text-muted mb-4">
-        A simple starting point for analyzing reviews, grouping themes, and surfacing the issues that matter most to customers and teams.
-      </p>
-
+      <span class="badge text-bg-primary mb-3">Customer feedback, made useful</span>
+      <h1 class="display-5 fw-bold mb-3">Turn customer feedback into clearer decisions</h1>
+      <p class="lead text-secondary mb-4">InsightFlow brings reviews, surveys, and support conversations together, then surfaces the themes and complaints your team can act on.</p>
       <div class="d-flex flex-wrap gap-3">
-        <button class="btn btn-primary btn-lg" type="button" disabled>Load sample data</button>
-        <a class="btn btn-outline-secondary btn-lg" href="/health">Check health</a>
+        <a class="btn btn-primary btn-lg" href="/import">Import feedback</a>
+        <a class="btn btn-outline-secondary btn-lg" href="/feedback">Explore feedback</a>
       </div>
-      <p class="small text-muted mt-3 mb-0">Preview build v0.1.0</p>
     </div>
-
     <div class="col-lg-5">
-      <div class="hero-card p-4 p-lg-5">
-        <h2 class="h4 fw-bold mb-3">Coming in Phase 3</h2>
-        <ul class="list-unstyled mb-0">
-          <li class="mb-2">• CSV import and feedback view</li>
-          <li class="mb-2">• AI-powered sentiment and topic analysis</li>
-          <li class="mb-2">• Dashboard and issue prioritization</li>
-        </ul>
+      <div class="surface-card p-4">
+        <h2 class="h5 fw-bold">How it works</h2>
+        <ol class="mb-0 ps-3 text-secondary">
+          <li class="mb-2">Bring feedback in with a CSV or add it directly.</li>
+          <li class="mb-2">Group repeated themes and understand sentiment.</li>
+          <li>Use the evidence to prioritize what your team addresses.</li>
+        </ol>
       </div>
     </div>
   </div>
-</div>
+
+  <div class="row g-3" aria-label="Feedback totals">
+    <div class="col-md-4"><div class="surface-card p-4 h-100"><p class="text-secondary mb-1">Total entries</p><p class="display-6 fw-bold mb-0"><%= sampleStatus.feedbackCount.toLocaleString() %></p></div></div>
+    <div class="col-md-4"><div class="surface-card p-4 h-100"><p class="text-secondary mb-1">Unique texts</p><p class="display-6 fw-bold mb-0"><%= sampleStatus.uniqueTextCount.toLocaleString() %></p></div></div>
+    <div class="col-md-4"><div class="surface-card p-4 h-100"><p class="text-secondary mb-1">Complaints</p><p class="display-6 fw-bold mb-0"><%= sampleStatus.complaintCount.toLocaleString() %></p></div></div>
+  </div>
+  <% if (!sampleStatus.connected) { %><p class="small text-secondary mt-3 mb-0">Connect the database to see live feedback totals.</p><% } %>
+</section>

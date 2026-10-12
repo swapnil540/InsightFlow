@@ -17,6 +17,7 @@ const taxonomy = require('../config/taxonomy');
 const multer = require('multer');
 const { prepareImportPreview, confirmImport } = require('../services/csvImportService');
 const { getImport, deleteImport } = require('../services/importStore');
+const { getSampleStatus, loadSampleData } = require('../services/sampleLoader');
 
 const router = express.Router();
 
@@ -35,9 +36,10 @@ const csvUpload = multer({
   },
 }).single('file');
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   res.render('pages/home', {
     pageTitle: 'Home',
+    sampleStatus: await getSampleStatus(),
   });
 });
 
@@ -165,11 +167,25 @@ router.get('/import/template.csv', (req, res) => {
   res.type('text/csv').attachment('insightflow-import-template.csv').send(template);
 });
 
-router.get('/import', (req, res) => {
+router.get('/import', async (req, res) => {
   res.render('pages/import', {
     pageTitle: 'Import feedback',
     activeNav: 'import',
     notice: typeof req.query.notice === 'string' ? IMPORT_NOTICES[req.query.notice] : undefined,
+    sampleStatus: await getSampleStatus(),
+  });
+});
+
+router.post('/import/sample', async (req, res) => {
+  const result = await loadSampleData();
+  const status = result.alreadyLoaded
+    ? `Sample data already loaded: ${result.feedbackCount.toLocaleString()} entries and ${result.uniqueTextCount} unique texts.`
+    : `Sample data loaded: ${result.addedCount.toLocaleString()} entries added (${result.feedbackCount.toLocaleString()} total sample entries).`;
+  res.render('pages/import', {
+    pageTitle: 'Import feedback',
+    activeNav: 'import',
+    sampleStatus: await getSampleStatus(),
+    sampleNotice: status,
   });
 });
 

@@ -5,6 +5,15 @@
       <h1 class="h2 fw-bold mb-2">Import feedback</h1>
       <p class="text-secondary mb-4">Upload a CSV to review its rows before they are added to InsightFlow.</p>
       <%- include('../partials/notice', { notice }) %>
+      <% if (typeof sampleNotice !== 'undefined' && sampleNotice) { %><div class="alert alert-success" role="status"><%= sampleNotice %></div><% } %>
+
+      <div class="surface-card p-3 mb-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div><h2 class="h6 fw-bold mb-1">Try the sample dataset</h2><p class="small text-secondary mb-0"><%= typeof sampleStatus === 'undefined' ? '—' : sampleStatus.feedbackCount.toLocaleString() %> entries · <%= typeof sampleStatus === 'undefined' ? '—' : sampleStatus.uniqueTextCount.toLocaleString() %> unique texts · <%= typeof sampleStatus === 'undefined' ? '—' : sampleStatus.complaintCount.toLocaleString() %> complaints</p></div>
+          <form method="post" action="/import/sample"><button class="btn btn-outline-primary" type="submit">Load sample data</button></form>
+        </div>
+        <% if (typeof sampleStatus === 'undefined' || !sampleStatus.connected) { %><p class="small text-secondary mt-2 mb-0">Database is disconnected; reconnect before loading sample data.</p><% } %>
+      </div>
 
       <form method="post" action="/import/preview" enctype="multipart/form-data" class="upload-dropzone">
         <label class="upload-icon" for="feedbackCsv"><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i><span class="visually-hidden">Choose a CSV file</span></label>
