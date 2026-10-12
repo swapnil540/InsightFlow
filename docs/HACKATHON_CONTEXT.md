@@ -246,8 +246,11 @@ the app's structured labels with its runtime LLM using the same schema.
 
 ## 6. Current phase status and next actions
 
-**Current phase: Phase 1 — complete. Phase 0 is reported complete by the
-owner.**
+**Current phase: Phase 3 — app shell and feedback management. Phase 0 is
+reported complete by the owner. Phase 2 implementation and database counts are
+complete; the deployed Render `/health` count check is pending.** See
+[`PHASE_2_REPORT.md`](PHASE_2_REPORT.md) for the implementation and validation
+record.
 
 | Work | State |
 |---|---|
@@ -260,6 +263,25 @@ owner.**
 | B7 full run | Complete. Dataset ID and run ID are recorded above; run succeeded with 320 rows. |
 | B8 adapted analysis dataset/report | Built from the revised-prompt re-test; all 320 summaries meet the 8-12 word requirement. Four Operational Issues rows were remapped to `order_processing_and_expectations`; each change is recorded in the report. |
 | B9 docs/handoff | Complete. Initial-run evaluation and both run IDs are recorded; Phase 1 changes are committed and pushed. |
+| Phase 2 models | Complete: `models/feedback.js`, `models/analysis.js`, `models/issue.js`, `models/report.js`, and `models/adaptionRun.js`. Feedback hash is non-unique; analysis hash is unique. Feedback filter, lookup, and text-search indexes are declared. |
+| Phase 2 seed data | Complete: deterministic seeded RNG, anchor-based 90-day simulated timestamps, weighted `Review`/`Survey`/`Support` sources, 7,000 feedback rows, 320 cached analyses, and 3 AdaptionRun records. All seeded feedback is marked simulated. |
+| Phase 2 verification | `npm test` passed (5 tests). Owner ran dry, write, and verify at anchor `2026-10-12T08:00:00Z`: 7,000 feedbacks, 320 analyses, 3 Adaption runs, zero missing analyses/invalid topics/embedded mismatches, and the expected recent trend. `/health` counts are implemented; live Render verification is pending. See `docs/PHASE_2_REPORT.md`. |
+
+### Phase 2 simulated sample rules
+
+- Default anchor: seed start time rounded down to the UTC hour. Pass
+  `--anchor <ISO date-time>` to choose a fixed anchor; dry, write, and verify
+  should use the same anchor when comparing the same seed batch.
+- A seeded Mulberry32 generator with constant seed `0x1f10f10` determines all
+  generated source and timestamp choices.
+- Every feedback timestamp is within the 90 days ending at the anchor. Story
+  complaints (`isComplaint` and a `fraud_*` topic or `delivery_delay`) place
+  approximately 45% in the recent 21 days and 55% in the preceding 69 days.
+  Other rows are uniform across the full 90 days.
+- Customer Service source weights: Support 60%, Review 25%, Survey 15%.
+  Other categories: Review 55%, Survey 25%, Support 20%.
+- All generated feedback has `isSimulated: true`. Source and date values are
+  simulated and do not come from the original CSV.
 
 Full-run estimate response: `estimated_credits_consumed: 4.0`,
 `estimated_minutes: 14`, `estimatedCreditsConsumed: 4`,
@@ -284,6 +306,38 @@ full run was launched.
   `dataset-456aec4e-901a-4825-91b1-60b1a936e52f-1791779272014`.
 - Phase 1 was committed as `Phase 1 complete` and pushed to `origin`.
 
+### Phase 2 fix-up completion report
+
+- **Anchor used for the verified seed:** `2026-10-12T08:00:00Z`.
+- **MongoDB counts verified by the owner:** 7,000 feedbacks, 320 analyses, and
+  3 Adaption runs. Category counts are Product Feedback 1,738, Customer
+  Service 1,707, Operational Issues 1,800, and Fraud and Scam 1,755.
+- All 7,000 seeded feedback records are simulated. Sources: Review 3,393,
+  Support 2,049, Survey 1,558. Simulated `createdAt` range:
+  `2026-07-14T08:04:17.841Z` through `2026-10-12T07:34:51.582Z`.
+- Last 21 days: story complaints were 46.97% of their cohort; other feedback
+  was 23.86% of its cohort. Their recent counts were 876 and 1,225,
+  respectively. Last-7/21/90-day row counts were 694/2,101/7,000. Text search
+  for `scam` returned 3 results.
+- Verification found zero feedbacks without a matching analysis, zero topics
+  outside the taxonomy, zero invalid embedded analyses, and zero inconsistent
+  references. The weekly complaint report shows counts rising to 395, 460, and
+  458 in the final complete/later weeks, against earlier weekly counts mostly
+  around 232–273.
+- `/health` now returns `counts: { feedbacks, analyses, adaptionRuns }` when
+  MongoDB is available and null counts when it is unavailable. The route code
+  is implemented; the live Render endpoint has not yet been checked.
+- Decisions and limitations: generated timestamps and source values remain
+  explicitly simulated; actual Adaption credit spend is unavailable; the
+  labels retest has no evaluation of its own. Four full-run component quality
+  values came from the owner's Step 3 instructions because they were absent
+  from `data/adaption_run.json`.
+- Step commits: `7c92b0f` realistic simulated dates/sources; `c112409` Issue,
+  Report, and AdaptionRun models/indexes; `a4c2264` three AdaptionRun seeds;
+  `5ad0a56` verification reporting; `1125eb4` `/health` counts.
+- **Exact next step:** check the deployed Render `/health` endpoint after the
+  push/redeploy, then continue Phase 3 app shell and feedback management.
+
 ## 7. Phase roadmap and handoff
 
 - **Phase 0 — setup/accounts:** repo, dependencies, Express/EJS shell, Atlas,
@@ -291,9 +345,10 @@ full run was launched.
 - **Phase 1 — Adaption pipeline:** unique reviews, approved taxonomy, Python
   environment and connection, smoke estimate/run, full estimate/run, evaluation,
   validated adapted analysis, run metadata, unknowns documented.
-- **Phase 2 — data layer/seeding:** Mongoose models, deterministic simulated
-  sample timestamps/source, seed 7,000 feedbacks plus 320 unique analyses,
-  indexes, count verification.
+- **Phase 2 — data layer/seeding:** complete. Models are
+  `models/feedback.js`, `models/analysis.js`, `models/issue.js`,
+  `models/report.js`, and `models/adaptionRun.js`. Seed 7,000 feedbacks, 320
+  unique analyses, and 3 Adaption runs with deterministic simulated values.
 - **Phase 3 — app shell/feedback management:** responsive layout, feedback
   table/forms, CSV preview/validation/import, sample data.
 - **Phase 4 — runtime analysis:** hash cache, similar adapted examples,
@@ -308,6 +363,24 @@ full run was launched.
   accessibility, mobile and failure-state polish.
 - **Phase 9 — deploy/submission:** production seed/env check, responsive test,
   README, demo, truthful Adaption write-up, submit early.
+
+### Phase 2 run and verification
+
+- `npm test` runs the focused Node built-in test suite.
+- `npm run seed:dry` validates local inputs and prints counts without
+  connecting to MongoDB.
+- `npm run seed:write` requires a valid `MONGODB_URI`; it ensures indexes and
+  upserts the sample feedback, analyses, and three Adaption runs. It does not
+  clear collections or delete issues/reports.
+- `npm run seed:verify` reports totals, category/sentiment/source counts,
+  timestamp windows, complaint volume and unique phrasings, weekly complaints,
+  recent trend shares, text-search results, and sample feedback. It checks
+  references and taxonomy topics.
+- All commands preload `.env` with `dotenv/config`; never print or commit its
+  values. Use the same `--anchor <ISO date-time>` value for dry/write/verify.
+- `/health` returns collection counts when connected; counts are `null` if
+  the database is disconnected or count queries fail.
+- Next phase: **Phase 3 — app shell and feedback management**.
 
 After a phase, commit only reviewed intended files, update the progress log,
 record decisions/contract changes/known issues, and include a concise phase
