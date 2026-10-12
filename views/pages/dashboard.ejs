@@ -34,6 +34,34 @@
       </div>
       <div class="dashboard-empty surface-card text-center p-4 mt-3" id="dashboardEmpty" hidden><strong>No feedback matches these filters</strong><p class="small text-secondary mb-2">Try a wider date range or reset the filters.</p><button class="btn btn-sm btn-outline-primary" type="button" data-dashboard-reset>Reset filters</button></div>
     </section>
+
+    <section class="mt-4" aria-labelledby="dashboardChartsTitle">
+      <h2 class="h5 fw-bold mb-3" id="dashboardChartsTitle">Feedback breakdown</h2>
+      <div class="row g-3">
+        <div class="col-12 col-xl-5"><article class="surface-card dashboard-chart-card h-100" aria-labelledby="sentimentChartTitle">
+          <h3 class="h6 fw-bold" id="sentimentChartTitle">Sentiment distribution</h3>
+          <p class="small text-secondary">Select a segment to filter the dashboard by sentiment.</p>
+          <div class="dashboard-chart-wrap"><canvas id="sentimentChart" aria-label="Doughnut chart of feedback counts by sentiment" role="img"></canvas></div>
+          <p class="visually-hidden" id="sentimentChartSummary"></p>
+          <div class="dashboard-chart-state small text-secondary" id="sentimentChartState" role="status" hidden></div>
+        </article></div>
+        <div class="col-12 col-xl-7"><article class="surface-card dashboard-chart-card h-100" aria-labelledby="issuesChartTitle">
+          <div class="d-flex flex-wrap align-items-start justify-content-between gap-2"><div><h3 class="h6 fw-bold mb-1" id="issuesChartTitle">Top complaint issues</h3><p class="small text-secondary">Top 8 complaint topics. Select a bar to filter by topic.</p></div>
+            <div class="btn-group btn-group-sm" role="group" aria-label="Issue chart metric"><button class="btn btn-outline-secondary active" type="button" data-issue-metric="mentions" aria-pressed="true">Total mentions</button><button class="btn btn-outline-secondary" type="button" data-issue-metric="uniquePhrasings" aria-pressed="false">Unique phrasings</button></div></div>
+          <div class="dashboard-chart-wrap dashboard-chart-wrap-tall"><canvas id="issuesChart" aria-label="Horizontal bar chart of the top complaint topics by total mentions" role="img"></canvas></div>
+          <p class="visually-hidden" id="issuesChartSummary"></p>
+          <div class="dashboard-chart-state small text-secondary" id="issuesChartState" role="status" hidden></div>
+        </article></div>
+        <div class="col-12"><article class="surface-card dashboard-chart-card" aria-labelledby="categoryChartTitle">
+          <h3 class="h6 fw-bold" id="categoryChartTitle">Sentiment by category</h3>
+          <p class="small text-secondary">Feedback counts split by sentiment. Select a segment to filter by category.</p>
+          <div class="dashboard-chart-wrap dashboard-chart-wrap-tall"><canvas id="categoryChart" aria-label="Stacked bar chart of sentiment counts for each feedback category" role="img"></canvas></div>
+          <p class="visually-hidden" id="categoryChartSummary"></p>
+          <div class="dashboard-chart-state small text-secondary" id="categoryChartState" role="status" hidden></div>
+        </article></div>
+      </div>
+    </section>
   </div>
 </section>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
 <script src="/js/dashboard.js" defer></script>

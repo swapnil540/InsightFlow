@@ -103,6 +103,12 @@ a:hover { color: var(--if-brand-dark); }
 .dashboard-skeleton span { display: block; height: .8rem; width: 42%; border-radius: 999px; background: linear-gradient(90deg, #edf1f7 25%, #f7f9fc 50%, #edf1f7 75%); background-size: 200% 100%; animation: dashboard-shimmer 1.2s ease-in-out infinite; }
 .dashboard-skeleton span + span { height: 1.8rem; width: 72%; }
 .dashboard-empty { border: 1px solid var(--if-border); border-radius: var(--if-radius); }
+.dashboard-chart-card { min-width: 0; padding: clamp(1rem, 2.5vw, 1.5rem); }
+.dashboard-chart-wrap { position: relative; height: 17rem; max-width: 100%; }
+.dashboard-chart-wrap-tall { height: 23rem; }
+.dashboard-chart-state { display: grid; min-height: 17rem; place-items: center; text-align: center; }
+.dashboard-chart-wrap-tall + .dashboard-chart-state { min-height: 23rem; }
+.dashboard-chart-card canvas[hidden] { display: none; }
 @keyframes dashboard-shimmer { to { background-position: -200% 0; } }
 .empty-state { color: var(--if-muted); }
 .pagination { --bs-pagination-color: var(--if-brand); --bs-pagination-active-bg: var(--if-brand); --bs-pagination-active-border-color: var(--if-brand); }

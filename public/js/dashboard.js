@@ -9,7 +9,103 @@
   const kpiCards = [...document.querySelectorAll('.dashboard-kpi')];
   let latestWindow = null;
   let requestId = 0;
+  let topicRequestId = 0;
   let debounceTimer;
+  let statsData = null;
+  let topicData = [];
+  let issueMetric = 'mentions';
+  const charts = {};
+  const sentimentColors = { positive: '#159a83', mixed: '#d99a24', neutral: '#77869a', negative: '#d85645' };
+  const sentimentLabels = ['positive', 'neutral', 'mixed', 'negative'];
+
+  function chartState(name, message = '') {
+    const canvas = document.getElementById(`${name}Chart`);
+    const state = document.getElementById(`${name}ChartState`);
+    state.textContent = message;
+    state.hidden = !message;
+    canvas.hidden = Boolean(message);
+    if (message && charts[name]) {
+      charts[name].destroy();
+      delete charts[name];
+    }
+  }
+
+  function replaceChart(name, config, summary) {
+    const canvas = document.getElementById(`${name}Chart`);
+    chartState(name);
+    if (charts[name]) charts[name].destroy();
+    charts[name] = new Chart(canvas, config);
+    document.getElementById(`${name}ChartSummary`).textContent = summary;
+  }
+
+  function chartOptions(onClick) {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      onClick,
+      plugins: {
+        legend: { position: 'bottom', labels: { usePointStyle: true, padding: 16 } },
+        tooltip: { callbacks: { label(context) {
+          const value = Number(context.parsed?.y ?? context.parsed?.x ?? context.parsed ?? 0);
+          const total = context.dataset.data.reduce((sum, count) => sum + Number(count || 0), 0);
+          const percent = total ? ` (${(value / total * 100).toFixed(1)}%)` : '';
+          return `${context.dataset.label || context.label}: ${formatNumber(value)}${percent}`;
+        } } },
+      },
+    };
+  }
+
+  function renderSentiment(data) {
+    const counts = sentimentLabels.map((key) => Number(data.sentiment?.[key] || 0));
+    const total = counts.reduce((sum, count) => sum + count, 0);
+    if (!total) return chartState('sentiment', 'No feedback matches these filters. Reset filters to see all feedback.');
+    replaceChart('sentiment', {
+      type: 'doughnut',
+      data: { labels: sentimentLabels.map((key) => `${key[0].toUpperCase()}${key.slice(1)}`), datasets: [{ data: counts, backgroundColor: sentimentLabels.map((key) => sentimentColors[key]), borderWidth: 2, borderColor: '#fff' }] },
+      options: { ...chartOptions((event, elements) => { if (elements.length) { controls.sentiment.value = sentimentLabels[elements[0].index]; loadStats(); } }), cutout: '62%' },
+    }, `Sentiment counts: ${sentimentLabels.map((key, i) => `${key} ${formatNumber(counts[i])}`).join(', ')}.`);
+  }
+
+  function renderIssues(topics) {
+    const rows = topics.slice().sort((a, b) => b[issueMetric] - a[issueMetric] || a.key.localeCompare(b.key)).slice(0, 8);
+    const values = rows.map((topic) => Number(topic[issueMetric] || 0));
+    if (!rows.length || !values.some(Boolean)) return chartState('issues', 'No complaint issues match these filters. Reset filters to see all issues.');
+    const labels = rows.map((topic) => topic.label);
+    replaceChart('issues', {
+      type: 'bar',
+      data: { labels, datasets: [{ label: issueMetric === 'mentions' ? 'Total mentions' : 'Unique phrasings', data: values, backgroundColor: '#5579d8', borderRadius: 5, maxBarThickness: 28 }] },
+      options: { ...chartOptions((event, elements) => { if (elements.length) { controls.topic.value = rows[elements[0].index].key; loadStats(); } }), indexAxis: 'y', scales: { x: { beginAtZero: true, ticks: { precision: 0 } }, y: { grid: { display: false } } }, plugins: { ...chartOptions().plugins, legend: { display: false } } },
+    }, `Top complaint issues by ${issueMetric === 'mentions' ? 'total mentions' : 'unique phrasings'}: ${rows.map((topic) => `${topic.label}, ${formatNumber(topic[issueMetric])}`).join('; ')}.`);
+  }
+
+  function renderCategories(data) {
+    const rows = data.byCategory || [];
+    const labels = rows.map((row) => row.category);
+    const total = rows.reduce((sum, row) => sum + Number(row.total || 0), 0);
+    if (!total) return chartState('category', 'No feedback matches these filters. Reset filters to see all categories.');
+    replaceChart('category', {
+      type: 'bar',
+      data: { labels, datasets: sentimentLabels.map((key) => ({ label: `${key[0].toUpperCase()}${key.slice(1)}`, data: rows.map((row) => Number(row[key] || 0)), backgroundColor: sentimentColors[key], borderRadius: 3 })) },
+      options: { ...chartOptions((event, elements) => { if (elements.length) { controls.category.value = rows[elements[0].index].category; loadStats(); } }), scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } } },
+    }, `Sentiment by category: ${rows.map((row) => `${row.category}, ${sentimentLabels.map((key) => `${key} ${formatNumber(row[key])}`).join(', ')}`).join('; ')}.`);
+  }
+
+  function loadTopics(query, id) {
+    const topicId = ++topicRequestId;
+    chartState('issues', 'Loading complaint issues…');
+    return fetch(`/api/topics${query ? `?${query}` : ''}`, { headers: { Accept: 'application/json' } })
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || 'Unable to load complaint issues.');
+        if (id !== requestId || topicId !== topicRequestId) return;
+        topicData = payload;
+        renderIssues(topicData);
+      })
+      .catch((error) => {
+        if (id === requestId && topicId === topicRequestId) chartState('issues', `${error.message || 'Unable to load complaint issues.'} Retry by changing a filter.`);
+      });
+  }
 
   function setLoading(isLoading) {
     loading.hidden = !isLoading;
@@ -87,18 +183,29 @@
     errorBox.hidden = true;
     setLoading(true);
     const query = queryString(readFilters());
+    chartState('sentiment', 'Loading sentiment distribution…');
+    chartState('category', 'Loading category breakdown…');
+    const topicsRequest = loadTopics(query, id);
     try {
       const response = await fetch(`/api/stats${query ? `?${query}` : ''}`, { headers: { Accept: 'application/json' } });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || 'Unable to load analytics.');
       if (id !== requestId) return;
+      statsData = payload;
       renderStats(payload);
+      renderSentiment(payload);
+      renderCategories(payload);
     } catch (error) {
       if (id !== requestId) return;
       errorMessage.textContent = error.message || 'Unable to load analytics.';
       errorBox.hidden = false;
+      chartState('sentiment', 'Unable to load sentiment data. Retry to try again.');
+      chartState('category', 'Unable to load category data. Retry to try again.');
     } finally {
-      if (id === requestId) setLoading(false);
+      if (id === requestId) {
+        setLoading(false);
+        await topicsRequest;
+      }
     }
   }
 
@@ -140,6 +247,15 @@
   });
   document.querySelectorAll('[data-dashboard-reset]').forEach((button) => button.addEventListener('click', () => document.getElementById('dashboardReset').click()));
   document.getElementById('dashboardRetry').addEventListener('click', () => loadStats(false));
+  document.querySelectorAll('[data-issue-metric]').forEach((button) => button.addEventListener('click', () => {
+    issueMetric = button.dataset.issueMetric;
+    document.querySelectorAll('[data-issue-metric]').forEach((item) => {
+      const selected = item === button;
+      item.classList.toggle('active', selected);
+      item.setAttribute('aria-pressed', String(selected));
+    });
+    if (topicData) renderIssues(topicData);
+  }));
 
   applyQuery();
   loadStats(false);
