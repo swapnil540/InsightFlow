@@ -19,6 +19,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', pagesRoutes);
 
+app.use((req, res) => {
+  res.status(404).render('pages/404', { pageTitle: 'Page not found' });
+});
+
+app.use((error, req, res, next) => {
+  if (res.headersSent) return next(error);
+  res.status(500).render('pages/error', {
+    pageTitle: 'Something went wrong',
+    message: 'Please try again in a moment.',
+  });
+});
+
 connectDatabase();
 
 app.listen(PORT, () => {

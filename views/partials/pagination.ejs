@@ -1,0 +1,12 @@
+<% if (Array.isArray(pages) && pages.length > 1) { %>
+  <nav aria-label="Pagination">
+    <ul class="pagination justify-content-center mb-0">
+      <% pages.forEach((item) => { %>
+        <li class="page-item <%= item.current ? 'active' : '' %> <%= item.disabled ? 'disabled' : '' %>">
+          <% if (item.disabled || item.current) { %><span class="page-link" <%= item.current ? 'aria-current="page"' : '' %>><%= item.label %></span>
+          <% } else { %><a class="page-link" href="<%= item.href %>"><%= item.label %></a><% } %>
+        </li>
+      <% }); %>
+    </ul>
+  </nav>
+<% } %>

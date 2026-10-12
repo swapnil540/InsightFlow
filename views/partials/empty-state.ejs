@@ -1,0 +1,6 @@
+<% const emptyTitle = typeof title === 'string' ? title : 'Nothing to show yet'; const emptyMessage = typeof message === 'string' ? message : 'Try adjusting your filters or come back when more feedback is available.'; %>
+<div class="empty-state text-center py-5 px-3">
+  <div class="empty-state-icon mb-3"><i class="bi bi-inbox" aria-hidden="true"></i></div>
+  <h2 class="h5"><%= emptyTitle %></h2>
+  <p class="text-secondary mb-0"><%= emptyMessage %></p>
+</div>

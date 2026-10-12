@@ -1,0 +1,2 @@
+<% const sourceValue = typeof source === 'string' ? source : 'Unknown'; const sourceIcons = { Review: 'star', Survey: 'clipboard-check', Support: 'headset' }; %>
+<span class="source-chip"><i class="bi bi-<%= sourceIcons[sourceValue] || 'chat-left-text' %>" aria-hidden="true"></i><%= sourceValue %></span>

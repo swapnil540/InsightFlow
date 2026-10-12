@@ -1,0 +1,4 @@
+<% const severityValue = Number.isInteger(severity) ? Math.max(0, Math.min(5, severity)) : 0; %>
+<span class="severity-dots" role="img" aria-label="Severity <%= severityValue %> of 5">
+  <% for (let dot = 1; dot <= 5; dot += 1) { %><span class="severity-dot <%= dot <= severityValue ? 'is-filled' : '' %>"></span><% } %>
+</span>

@@ -1,0 +1,6 @@
+<% if (typeof notice !== 'undefined' && notice) { %>
+  <div class="alert alert-<%= notice.type || 'info' %> d-flex align-items-start gap-2" role="<%= notice.type === 'danger' ? 'alert' : 'status' %>">
+    <i class="bi bi-<%= notice.icon || 'info-circle' %>" aria-hidden="true"></i>
+    <div><%= notice.message %></div>
+  </div>
+<% } %>

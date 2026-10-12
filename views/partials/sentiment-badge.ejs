@@ -1,0 +1,2 @@
+<% const value = typeof sentiment === 'string' ? sentiment : 'unknown'; const styles = { positive: 'success', negative: 'danger', mixed: 'warning', neutral: 'secondary' }; %>
+<span class="badge rounded-pill text-bg-<%= styles[value] || 'light' %> <%= value === 'unknown' ? 'text-dark' : '' %>"><%= value.charAt(0).toUpperCase() + value.slice(1) %></span>
