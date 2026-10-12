@@ -62,7 +62,9 @@ function parseFilters(query = {}) {
   if (batch && batch.length <= 100 && /^[a-zA-Z0-9_-]+$/.test(batch)) filters.batch = batch;
 
   filters.view = view;
-  filters.sort = requestedSort || (view === 'all' ? 'newest' : 'mentions');
+  filters.sort = requestedSort && !(view === 'all' && requestedSort === 'mentions')
+    ? requestedSort
+    : (view === 'all' ? 'newest' : 'mentions');
   filters.page = page || 1;
   filters.limit = limit || 20;
   if (queryString(query, 'complaint') === '1') filters.complaint = true;

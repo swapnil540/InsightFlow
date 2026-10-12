@@ -1,0 +1,203 @@
+<section class="feedback-page py-4 py-lg-5">
+  <div class="container">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-4">
+      <div>
+        <p class="eyebrow mb-2">Customer voice</p>
+        <h1 class="h2 fw-bold mb-1">Feedback</h1>
+        <p class="text-secondary mb-0">Search and explore the feedback behind your customer experience.</p>
+      </div>
+      <div class="feedback-totals text-md-end">
+        <div class="fw-semibold"><%= totals.entries.toLocaleString() %> entries</div>
+        <div class="small text-secondary"><%= totals.uniqueTexts.toLocaleString() %> unique texts</div>
+      </div>
+    </div>
+
+    <section class="surface-card mb-4" aria-label="Feedback filters">
+      <form method="get" action="/feedback" class="row g-3 align-items-end">
+        <div class="col-12 col-lg-4">
+          <label class="form-label" for="filterSearch">Search text</label>
+          <input class="form-control" id="filterSearch" type="search" name="q" maxlength="100" value="<%= filters.q || '' %>" placeholder="Try scam, delivery, or service" />
+        </div>
+        <div class="col-6 col-lg-2">
+          <label class="form-label" for="filterCategory">Category</label>
+          <select class="form-select" id="filterCategory" name="category">
+            <option value="">All categories</option>
+            <% categories.forEach((category) => { %><option value="<%= category %>" <%= filters.category === category ? 'selected' : '' %>><%= category %></option><% }); %>
+          </select>
+        </div>
+        <div class="col-6 col-lg-2">
+          <label class="form-label" for="filterSentiment">Sentiment</label>
+          <select class="form-select" id="filterSentiment" name="sentiment">
+            <option value="">All sentiments</option>
+            <% sentiments.forEach((sentiment) => { %><option value="<%= sentiment %>" <%= filters.sentiment === sentiment ? 'selected' : '' %>><%= sentiment.charAt(0).toUpperCase() + sentiment.slice(1) %></option><% }); %>
+          </select>
+        </div>
+        <div class="col-12 col-lg-4">
+          <label class="form-label" for="filterTopic">Topic</label>
+          <select class="form-select" id="filterTopic" name="topic">
+            <option value="">All topics</option>
+            <% topicGroups.forEach((group) => { %>
+              <optgroup label="<%= group.parentCategory %>">
+                <% group.topics.forEach((topic) => { %><option value="<%= topic.key %>" <%= filters.topic === topic.key ? 'selected' : '' %>><%= topic.label %></option><% }); %>
+              </optgroup>
+            <% }); %>
+          </select>
+        </div>
+        <div class="col-6 col-md-3 col-lg-2">
+          <label class="form-label" for="filterSource">Source</label>
+          <select class="form-select" id="filterSource" name="source">
+            <option value="">All sources</option>
+            <% sources.forEach((source) => { %><option value="<%= source %>" <%= filters.source === source ? 'selected' : '' %>><%= source %></option><% }); %>
+          </select>
+        </div>
+        <div class="col-6 col-md-3 col-lg-2">
+          <label class="form-label" for="filterFrom">Date from</label>
+          <input class="form-control" id="filterFrom" type="date" name="from" value="<%= filters.from || '' %>" />
+        </div>
+        <div class="col-6 col-md-3 col-lg-2">
+          <label class="form-label" for="filterTo">Date to</label>
+          <input class="form-control" id="filterTo" type="date" name="to" value="<%= filters.to || '' %>" />
+        </div>
+        <div class="col-6 col-md-3 col-lg-2">
+          <label class="form-label" for="filterView">View</label>
+          <select class="form-select" id="filterView" name="view">
+            <option value="grouped" <%= filters.view === 'grouped' ? 'selected' : '' %>>Grouped</option>
+            <option value="all" <%= filters.view === 'all' ? 'selected' : '' %>>All entries</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-3 col-lg-2">
+          <label class="form-label" for="filterSort">Sort by</label>
+          <select class="form-select" id="filterSort" name="sort">
+            <% sortOptions.forEach((sort) => { %>
+              <% if (sort !== 'mentions' || filters.view === 'grouped') { %>
+              <option value="<%= sort %>" <%= filters.sort === sort ? 'selected' : '' %>><%= ({ newest: 'Newest', oldest: 'Oldest', severity: 'Severity', mentions: 'Most mentions' })[sort] %></option>
+              <% } %>
+            <% }); %>
+          </select>
+        </div>
+        <div class="col-6 col-md-3 col-lg-2">
+          <label class="form-label" for="filterLimit">Rows per page</label>
+          <select class="form-select" id="filterLimit" name="limit">
+            <% pageSizes.forEach((limit) => { %><option value="<%= limit %>" <%= filters.limit === limit ? 'selected' : '' %>><%= limit %></option><% }); %>
+          </select>
+        </div>
+        <div class="col-12 col-lg-3 d-flex align-items-center">
+          <div class="form-check mt-lg-4">
+            <input class="form-check-input" id="filterComplaint" type="checkbox" name="complaint" value="1" <%= filters.complaint ? 'checked' : '' %> />
+            <label class="form-check-label" for="filterComplaint">Complaints only</label>
+          </div>
+        </div>
+        <input type="hidden" name="batch" value="<%= filters.batch || '' %>" />
+        <input type="hidden" name="page" value="1" />
+        <div class="col-12 d-flex flex-wrap gap-2 justify-content-end pt-2">
+          <a class="btn btn-light" href="<%= resetHref %>">Reset</a>
+          <button class="btn btn-primary px-4" type="submit"><i class="bi bi-funnel me-2" aria-hidden="true"></i>Apply filters</button>
+        </div>
+      </form>
+    </section>
+
+    <div class="d-flex flex-column flex-md-row justify-content-between gap-2 align-items-md-center mb-3">
+      <div>
+        <p class="fw-semibold mb-0">Showing <%= firstItem.toLocaleString() %>–<%= lastItem.toLocaleString() %> of <%= filteredTotal.toLocaleString() %></p>
+        <% if (activeFilters.length) { %>
+          <div class="d-flex flex-wrap gap-2 mt-2" aria-label="Active filters">
+            <% activeFilters.forEach((filter) => { %>
+              <a class="filter-chip" href="<%= filter.href %>" aria-label="Remove <%= filter.label %> filter"><span><%= filter.label %>:</span> <%= filter.value %><i class="bi bi-x ms-1" aria-hidden="true"></i></a>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
+      <div class="btn-group btn-group-sm view-switch" role="group" aria-label="Feedback view">
+        <a class="btn <%= filters.view === 'grouped' ? 'btn-primary' : 'btn-outline-secondary' %>" href="<%= groupedHref %>">Grouped</a>
+        <a class="btn <%= filters.view === 'all' ? 'btn-primary' : 'btn-outline-secondary' %>" href="<%= allEntriesHref %>">All entries</a>
+      </div>
+    </div>
+
+    <section class="surface-card feedback-table-card p-0 overflow-hidden" aria-label="Feedback results">
+      <% if (rows.length) { %>
+        <div class="table-responsive">
+          <table class="table feedback-table align-middle mb-0">
+            <thead><tr>
+              <th scope="col">Date</th><th scope="col">Feedback</th>
+              <th scope="col" class="d-none d-md-table-cell">Category</th>
+              <th scope="col" class="d-none d-lg-table-cell">Source</th>
+              <th scope="col">Sentiment</th>
+              <th scope="col" class="d-none d-lg-table-cell">Topic</th>
+              <th scope="col" class="d-none d-md-table-cell">Severity</th>
+              <th scope="col" class="d-none d-lg-table-cell">Complaint</th>
+              <th scope="col" class="d-none d-lg-table-cell">Analysis</th>
+              <% if (filters.view === 'grouped') { %><th scope="col">Mentions</th><% } %>
+            </tr></thead>
+            <tbody>
+              <% rows.forEach((row) => { const feedback = row.feedback; const analysis = feedback.analysis || {}; const displayDate = row.latest || feedback.createdAt; const provider = analysis.producedBy === 'adaption' ? 'Adaption' : analysis.producedBy === 'llm' ? 'AI' : 'Basic rules'; %>
+                <tr>
+                  <td class="feedback-date">
+                    <time datetime="<%= new Date(displayDate).toISOString() %>"><%= new Date(displayDate).toLocaleDateString() %></time>
+                    <span class="simulated-help" title="Seeded demo dates are simulated" aria-label="Seeded demo dates are simulated"><i class="bi bi-info-circle" aria-hidden="true"></i></span>
+                    <% if (feedback.isSimulated) { %><span class="d-block small text-secondary">Demo</span><% } %>
+                  </td>
+                  <td class="feedback-text-cell">
+                    <button class="feedback-detail-trigger text-clamp" type="button" data-bs-toggle="modal" data-bs-target="#feedbackDetailModal"
+                      data-text="<%= feedback.text %>" data-sentiment="<%= analysis.sentiment || 'unknown' %>"
+                      data-score="<%= typeof analysis.sentimentScore === 'number' ? analysis.sentimentScore.toFixed(2) : '' %>"
+                      data-topic="<%= row.topicLabel %>" data-parent-category="<%= row.topicParentCategory %>"
+                      data-severity="<%= analysis.severity || 0 %>" data-complaint="<%= analysis.isComplaint ? 'Yes' : 'No' %>"
+                      data-summary="<%= analysis.issueSummary || '' %>" data-action="<%= analysis.suggestedAction || '' %>"
+                      data-source="<%= feedback.source %>" data-date="<%= new Date(displayDate).toISOString() %>"
+                      data-simulated="<%= feedback.isSimulated ? 'true' : 'false' %>" data-provider="<%= provider %>"
+                      data-mentions="<%= row.mentions %>" data-all-href="<%= row.allHref %>"><%= feedback.text %></button>
+                  </td>
+                  <td class="d-none d-md-table-cell"><%= feedback.originalCategory %></td>
+                  <td class="d-none d-lg-table-cell"><%- include('../partials/source-chip', { source: feedback.source }) %></td>
+                  <td><%- include('../partials/sentiment-badge', { sentiment: analysis.sentiment }) %></td>
+                  <td class="d-none d-lg-table-cell"><%= row.topicLabel %></td>
+                  <td class="d-none d-md-table-cell"><%- include('../partials/severity-dots', { severity: analysis.severity }) %></td>
+                  <td class="d-none d-lg-table-cell"><%= analysis.isComplaint ? 'Yes' : 'No' %></td>
+                  <td class="d-none d-lg-table-cell"><span class="provider-badge"><%= provider %></span></td>
+                  <% if (filters.view === 'grouped') { %><td><span class="mention-badge">× <%= row.mentions %> mentions</span></td><% } %>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <%- include('../partials/empty-state', { title: 'No feedback matches these filters', message: 'Clear one or more filters or search with a different phrase.' }) %>
+        <div class="text-center pb-4"><a class="btn btn-outline-primary btn-sm" href="<%= resetHref %>">Reset filters</a></div>
+      <% } %>
+    </section>
+    <% if (pagination.length > 1) { %><div class="mt-4"><%- include('../partials/pagination', { pages: pagination }) %></div><% } %>
+  </div>
+</section>
+
+<div class="modal fade" id="feedbackDetailModal" tabindex="-1" aria-labelledby="feedbackDetailTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content detail-modal">
+      <div class="modal-header">
+        <div><p class="eyebrow mb-1">Feedback detail</p><h2 class="modal-title fs-5 fw-bold" id="feedbackDetailTitle">Customer feedback</h2></div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <blockquote class="detail-quote mb-4" id="detailText"></blockquote>
+        <div class="row g-3 detail-grid">
+          <div class="col-6 col-md-4"><span>Sentiment</span><strong id="detailSentiment"></strong></div>
+          <div class="col-6 col-md-4"><span>Sentiment score</span><strong id="detailScore"></strong></div>
+          <div class="col-6 col-md-4"><span>Topic</span><strong id="detailTopic"></strong></div>
+          <div class="col-6 col-md-4"><span>Parent category</span><strong id="detailParentCategory"></strong></div>
+          <div class="col-6 col-md-4"><span>Severity</span><strong id="detailSeverity"></strong></div>
+          <div class="col-6 col-md-4"><span>Complaint</span><strong id="detailComplaint"></strong></div>
+          <div class="col-6 col-md-4"><span>Source</span><strong id="detailSource"></strong></div>
+          <div class="col-6 col-md-4"><span>Date</span><strong id="detailDate"></strong></div>
+          <div class="col-6 col-md-4"><span>Analysis by</span><strong id="detailProvider"></strong></div>
+          <div class="col-12"><span>Issue summary</span><p id="detailSummary" class="mb-0"></p></div>
+          <div class="col-12"><span>Suggested action</span><p id="detailAction" class="mb-0"></p></div>
+          <div class="col-12" id="detailMentionsWrap"><span>Grouped mentions</span><strong id="detailMentions"></strong></div>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <a class="small" id="detailAllLink" href="/feedback">See all entries for this text</a>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="/js/feedback.js" defer></script>
