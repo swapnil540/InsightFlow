@@ -9,7 +9,7 @@ const embeddedAnalysisSchema = new mongoose.Schema({
   isComplaint: { type: Boolean, required: true },
   issueSummary: { type: String, required: true },
   suggestedAction: { type: String, required: true },
-  producedBy: { type: String, required: true, enum: ['adaption', 'llm', 'fallback'] },
+  producedBy: { type: String, required: true, enum: ['adaption', 'llm', 'fallback', 'rules'] },
   adaptionRunId: { type: String, default: null },
 }, { _id: false });
 
