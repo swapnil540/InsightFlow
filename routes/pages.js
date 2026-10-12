@@ -309,6 +309,8 @@ router.get('/health', async (req, res) => {
   res.json({
     ok: true,
     db: state,
+    dbState: mongoose.connection.readyState,
+    dbConfigured: Boolean(process.env.MONGODB_URI),
     counts,
     time: new Date().toISOString(),
   });
