@@ -9,9 +9,9 @@
     <section class="dashboard-filter-card surface-card mb-4" aria-labelledby="dashboardFiltersTitle">
       <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
         <h2 class="h6 fw-bold mb-0" id="dashboardFiltersTitle">Filters</h2>
-        <button class="btn btn-sm btn-outline-secondary" type="button" id="dashboardReset">Reset filters</button>
+        <div class="d-flex align-items-center gap-2"><button class="btn btn-sm btn-outline-secondary d-lg-none" type="button" id="dashboardFiltersToggle" aria-controls="dashboardFilters" aria-expanded="false">Show filters</button><button class="btn btn-sm btn-outline-secondary" type="button" id="dashboardReset">Reset filters</button></div>
       </div>
-      <div class="row g-3" id="dashboardFilters">
+      <div class="row g-3 dashboard-filter-fields is-collapsed" id="dashboardFilters">
         <div class="col-6 col-lg-2"><label class="form-label" for="filterCategory">Category</label><select class="form-select" id="filterCategory" name="category"><option value="">All categories</option><% categories.forEach((value) => { %><option value="<%= value %>"><%= value %></option><% }); %></select></div>
         <div class="col-6 col-lg-2"><label class="form-label" for="filterSentiment">Sentiment</label><select class="form-select" id="filterSentiment" name="sentiment"><option value="">All sentiments</option><% sentiments.forEach((value) => { %><option value="<%= value %>"><%= value[0].toUpperCase() + value.slice(1) %></option><% }); %></select></div>
         <div class="col-12 col-lg-3"><label class="form-label" for="filterTopic">Topic</label><select class="form-select" id="filterTopic" name="topic"><option value="">All topics</option><% topicGroups.forEach((group) => { %><optgroup label="<%= group.parentCategory %>"><% group.topics.forEach((topic) => { %><option value="<%= topic.key %>"><%= topic.label %></option><% }); %></optgroup><% }); %></select></div>
@@ -29,7 +29,7 @@
       <h2 class="h5 fw-bold mb-3" id="dashboardMetricsTitle">Key metrics</h2>
       <div class="row g-3" id="dashboardKpis" aria-live="polite">
         <% const cards = [ ['totalMentions', 'Total feedback', 'Mentions'], ['uniquePhrasings', 'Unique phrasings', 'Distinct texts'], ['complaints', 'Complaints', 'Count and share'], ['negativeShare', 'Negative share', 'Of analysed feedback'], ['averageScore', 'Average sentiment score', 'Scale: −1 to +1'], ['topIssue', 'Top issue', 'Complaint mentions'] ]; cards.forEach(([key, title, hint]) => { %>
-          <div class="col-12 col-sm-6 col-xl-4"><article class="surface-card dashboard-kpi h-100" aria-labelledby="kpi-title-<%= key %>"><div class="dashboard-skeleton" aria-hidden="true"><span></span><span></span></div><div class="dashboard-kpi-content" hidden><p class="small text-secondary mb-2" id="kpi-title-<%= key %>"><%= title %></p><p class="dashboard-kpi-value mb-1" data-value="<%= key %>">—</p><p class="small text-secondary mb-0" data-hint="<%= key %>"><%= hint %></p><p class="small mb-0 mt-2" data-delta="<%= key %>" hidden></p></div></article></div>
+          <div class="col-12 col-sm-6 col-xl-4"><article class="surface-card dashboard-kpi h-100" aria-labelledby="kpi-title-<%= key %>"><div class="dashboard-skeleton" aria-hidden="true"><span></span><span></span></div><div class="dashboard-kpi-content" hidden><p class="small text-secondary mb-2" id="kpi-title-<%= key %>"><%= title %></p><p class="dashboard-kpi-value mb-1" data-value="<%= key %>">—</p><p class="small text-secondary mb-0" data-hint="<%= key %>"><%= hint %></p><p class="small mb-0 mt-2" data-delta="<%= key %>" hidden></p></div><div class="dashboard-kpi-error small text-danger" role="alert" hidden>Unable to load this metric. <button class="btn btn-sm btn-outline-danger ms-1" type="button" data-dashboard-retry>Retry</button></div></article></div>
         <% }); %>
       </div>
       <div class="dashboard-empty surface-card text-center p-4 mt-3" id="dashboardEmpty" hidden><strong>No feedback matches these filters</strong><p class="small text-secondary mb-2">Try a wider date range or reset the filters.</p><button class="btn btn-sm btn-outline-primary" type="button" data-dashboard-reset>Reset filters</button></div>
@@ -41,23 +41,23 @@
         <div class="col-12 col-xl-5"><article class="surface-card dashboard-chart-card h-100" aria-labelledby="sentimentChartTitle">
           <h3 class="h6 fw-bold" id="sentimentChartTitle">Sentiment distribution</h3>
           <p class="small text-secondary">Select a segment to filter the dashboard by sentiment.</p>
-          <div class="dashboard-chart-wrap"><canvas id="sentimentChart" aria-label="Doughnut chart of feedback counts by sentiment" role="img"></canvas></div>
+          <div class="dashboard-chart-wrap" hidden><canvas id="sentimentChart" aria-label="Doughnut chart of feedback counts by sentiment" aria-describedby="sentimentChartSummary" role="img" hidden></canvas></div>
           <p class="visually-hidden" id="sentimentChartSummary"></p>
-          <div class="dashboard-chart-state small text-secondary" id="sentimentChartState" role="status" hidden></div>
+          <div class="dashboard-chart-state small text-secondary is-loading" id="sentimentChartState" role="status">Loading sentiment distribution…</div>
         </article></div>
         <div class="col-12 col-xl-7"><article class="surface-card dashboard-chart-card h-100" aria-labelledby="issuesChartTitle">
           <div class="d-flex flex-wrap align-items-start justify-content-between gap-2"><div><h3 class="h6 fw-bold mb-1" id="issuesChartTitle">Top complaint issues</h3><p class="small text-secondary">Top 8 complaint topics. Select a bar to filter by topic.</p></div>
             <div class="btn-group btn-group-sm" role="group" aria-label="Issue chart metric"><button class="btn btn-outline-secondary active" type="button" data-issue-metric="mentions" aria-pressed="true">Total mentions</button><button class="btn btn-outline-secondary" type="button" data-issue-metric="uniquePhrasings" aria-pressed="false">Unique phrasings</button></div></div>
-          <div class="dashboard-chart-wrap dashboard-chart-wrap-tall"><canvas id="issuesChart" aria-label="Horizontal bar chart of the top complaint topics by total mentions" role="img"></canvas></div>
+          <div class="dashboard-chart-wrap dashboard-chart-wrap-tall" hidden><canvas id="issuesChart" aria-label="Horizontal bar chart of the top complaint topics by total mentions" aria-describedby="issuesChartSummary" role="img" hidden></canvas></div>
           <p class="visually-hidden" id="issuesChartSummary"></p>
-          <div class="dashboard-chart-state small text-secondary" id="issuesChartState" role="status" hidden></div>
+          <div class="dashboard-chart-state small text-secondary is-loading" id="issuesChartState" role="status">Loading complaint issues…</div>
         </article></div>
         <div class="col-12"><article class="surface-card dashboard-chart-card" aria-labelledby="categoryChartTitle">
           <h3 class="h6 fw-bold" id="categoryChartTitle">Sentiment by category</h3>
           <p class="small text-secondary">Feedback counts split by sentiment. Select a segment to filter by category.</p>
-          <div class="dashboard-chart-wrap dashboard-chart-wrap-tall"><canvas id="categoryChart" aria-label="Stacked bar chart of sentiment counts for each feedback category" role="img"></canvas></div>
+          <div class="dashboard-chart-wrap dashboard-chart-wrap-tall" hidden><canvas id="categoryChart" aria-label="Stacked bar chart of sentiment counts for each feedback category" aria-describedby="categoryChartSummary" role="img" hidden></canvas></div>
           <p class="visually-hidden" id="categoryChartSummary"></p>
-          <div class="dashboard-chart-state small text-secondary" id="categoryChartState" role="status" hidden></div>
+          <div class="dashboard-chart-state small text-secondary is-loading" id="categoryChartState" role="status">Loading category breakdown…</div>
         </article></div>
         <div class="col-12"><article class="surface-card dashboard-chart-card" aria-labelledby="trendChartTitle">
           <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-2">
@@ -67,22 +67,22 @@
               <div class="btn-group btn-group-sm" role="group" aria-label="Trend metric"><button class="btn btn-outline-secondary active" type="button" data-trend-metric="total" aria-pressed="true">Total</button><button class="btn btn-outline-secondary" type="button" data-trend-metric="complaints" aria-pressed="false">Complaints</button><button class="btn btn-outline-secondary" type="button" data-trend-metric="sentiment" aria-pressed="false">By sentiment</button></div>
             </div>
           </div>
-          <div class="dashboard-chart-wrap dashboard-chart-wrap-tall"><canvas id="trendChart" aria-label="Line chart showing feedback counts over time" role="img"></canvas></div>
+          <div class="dashboard-chart-wrap dashboard-chart-wrap-tall" hidden><canvas id="trendChart" aria-label="Line chart showing feedback counts over time" aria-describedby="trendChartSummary" role="img" hidden></canvas></div>
           <p class="visually-hidden" id="trendChartSummary"></p>
-          <div class="dashboard-chart-state small text-secondary" id="trendChartState" role="status" hidden></div>
+          <div class="dashboard-chart-state small text-secondary is-loading" id="trendChartState" role="status">Loading feedback trend…</div>
         </article></div>
         <div class="col-12 col-lg-5"><article class="surface-card dashboard-chart-card h-100" aria-labelledby="risingIssuesTitle">
           <h3 class="h6 fw-bold mb-1" id="risingIssuesTitle">Rising issues</h3>
           <p class="small text-secondary">Fastest-growing complaint topics with at least 20 mentions in the previous 14 days.</p>
-          <p class="dashboard-chart-state small text-secondary" id="risingIssuesState" role="status">Loading rising issues…</p>
+          <p class="dashboard-inline-state small text-secondary is-loading" id="risingIssuesState" role="status">Loading rising issues…</p>
           <ol class="rising-issues-list mb-0" id="risingIssuesList" hidden></ol>
         </article></div>
         <div class="col-12 col-lg-7"><article class="surface-card dashboard-chart-card h-100" aria-labelledby="topicTrendTitle">
           <h3 class="h6 fw-bold mb-1" id="topicTrendTitle">Top complaint topics over time</h3>
           <p class="small text-secondary">Compare the three most-mentioned complaint topics.</p>
-          <div class="dashboard-chart-wrap"><canvas id="topicTrendChart" aria-label="Line chart of the top three complaint topics over time" role="img"></canvas></div>
+          <div class="dashboard-chart-wrap" hidden><canvas id="topicTrendChart" aria-label="Line chart of the top three complaint topics over time" aria-describedby="topicTrendChartSummary" role="img" hidden></canvas></div>
           <p class="visually-hidden" id="topicTrendChartSummary"></p>
-          <div class="dashboard-chart-state small text-secondary" id="topicTrendChartState" role="status" hidden></div>
+          <div class="dashboard-chart-state small text-secondary is-loading" id="topicTrendChartState" role="status">Loading complaint topic trend…</div>
         </article></div>
       </div>
     </section>

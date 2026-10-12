@@ -19,17 +19,50 @@
   let issueMetric = 'mentions';
   let trendGranularity = 'week';
   let trendMetric = 'total';
+  let filtersOpen = false;
   const charts = {};
   const sentimentColors = { positive: '#159a83', mixed: '#d99a24', neutral: '#77869a', negative: '#d85645' };
   const topicColors = ['#5275d2', '#dc8e36', '#8059b5'];
   const sentimentLabels = ['positive', 'neutral', 'mixed', 'negative'];
 
+  function stateKind(message) {
+    if (!message) return '';
+    if (message.startsWith('Loading')) return 'is-loading';
+    if (/No feedback|No complaint/i.test(message)) return 'is-empty';
+    return 'is-error';
+  }
+
   function chartState(name, message = '') {
     const canvas = document.getElementById(`${name}Chart`);
     const state = document.getElementById(`${name}ChartState`);
-    state.textContent = message;
+    const kind = stateKind(message);
+    state.replaceChildren();
+    state.classList.remove('is-loading', 'is-empty', 'is-error');
+    if (kind) state.classList.add(kind);
+    state.setAttribute('role', kind === 'is-error' ? 'alert' : 'status');
+    if (message) {
+      const text = document.createElement('span');
+      text.textContent = message.replace(/ Retry by changing a filter\.$/, '');
+      state.append(text);
+      if (kind === 'is-empty') {
+        const reset = document.createElement('button');
+        reset.className = 'btn btn-sm btn-outline-primary mt-2';
+        reset.type = 'button';
+        reset.textContent = 'Reset filters';
+        reset.addEventListener('click', () => document.getElementById('dashboardReset').click());
+        state.append(reset);
+      } else if (kind === 'is-error') {
+        const retry = document.createElement('button');
+        retry.className = 'btn btn-sm btn-outline-danger mt-2';
+        retry.type = 'button';
+        retry.textContent = 'Retry';
+        retry.addEventListener('click', () => loadStats(false));
+        state.append(retry);
+      }
+    }
     state.hidden = !message;
     canvas.hidden = Boolean(message);
+    canvas.parentElement.hidden = Boolean(message);
     if (message && charts[name]) {
       charts[name].destroy();
       delete charts[name];
@@ -65,7 +98,7 @@
   function renderSentiment(data) {
     const counts = sentimentLabels.map((key) => Number(data.sentiment?.[key] || 0));
     const total = counts.reduce((sum, count) => sum + count, 0);
-    if (!total) return chartState('sentiment', 'No feedback matches these filters. Reset filters to see all feedback.');
+    if (!total) return chartState('sentiment', 'No feedback matches these filters.');
     replaceChart('sentiment', {
       type: 'doughnut',
       data: { labels: sentimentLabels.map((key) => `${key[0].toUpperCase()}${key.slice(1)}`), datasets: [{ data: counts, backgroundColor: sentimentLabels.map((key) => sentimentColors[key]), borderWidth: 2, borderColor: '#fff' }] },
@@ -76,7 +109,7 @@
   function renderIssues(topics) {
     const rows = topics.slice().sort((a, b) => b[issueMetric] - a[issueMetric] || a.key.localeCompare(b.key)).slice(0, 8);
     const values = rows.map((topic) => Number(topic[issueMetric] || 0));
-    if (!rows.length || !values.some(Boolean)) return chartState('issues', 'No complaint issues match these filters. Reset filters to see all issues.');
+    if (!rows.length || !values.some(Boolean)) return chartState('issues', 'No complaint issues match these filters.');
     const labels = rows.map((topic) => topic.label);
     replaceChart('issues', {
       type: 'bar',
@@ -89,7 +122,7 @@
     const rows = data.byCategory || [];
     const labels = rows.map((row) => row.category);
     const total = rows.reduce((sum, row) => sum + Number(row.total || 0), 0);
-    if (!total) return chartState('category', 'No feedback matches these filters. Reset filters to see all categories.');
+    if (!total) return chartState('category', 'No feedback matches these filters.');
     replaceChart('category', {
       type: 'bar',
       data: { labels, datasets: sentimentLabels.map((key) => ({ label: `${key[0].toUpperCase()}${key.slice(1)}`, data: rows.map((row) => Number(row[key] || 0)), backgroundColor: sentimentColors[key], borderRadius: 3 })) },
@@ -120,7 +153,7 @@
       datasets = [line('Total feedback', 'total', '#5579d8')];
     }
     const total = datasets.reduce((sum, dataset) => sum + dataset.data.reduce((part, value) => part + value, 0), 0);
-    if (!buckets.length || !total) return chartState('trend', 'No feedback matches these filters. Reset filters to see the trend.');
+    if (!buckets.length || !total) return chartState('trend', 'No feedback matches these filters.');
     replaceChart('trend', {
       type: 'line',
       data: { labels, datasets },
@@ -155,7 +188,6 @@
 
   function renderRisingIssues(topics) {
     const list = document.getElementById('risingIssuesList');
-    const state = document.getElementById('risingIssuesState');
     const rising = topics
       .filter((topic) => Number(topic.mentionsPrev14d) >= 20 && Number.isFinite(Number(topic.trendPct)) && Number(topic.trendPct) > 0)
       .sort((a, b) => Number(b.trendPct) - Number(a.trendPct) || b.mentions - a.mentions)
@@ -163,8 +195,7 @@
     list.replaceChildren();
     if (!rising.length) {
       list.hidden = true;
-      state.hidden = false;
-      state.textContent = 'No rising issues meet the minimum volume threshold for these filters.';
+      setRisingState('No rising issues meet the minimum volume threshold for these filters.', 'empty');
       return;
     }
 
@@ -190,8 +221,35 @@
       item.append(heading, details, link);
       list.append(item);
     });
-    state.hidden = true;
+    document.getElementById('risingIssuesState').hidden = true;
     list.hidden = false;
+  }
+
+  function setRisingState(message, kind = 'loading') {
+    const state = document.getElementById('risingIssuesState');
+    state.replaceChildren();
+    state.classList.remove('is-loading', 'is-empty', 'is-error');
+    state.classList.add(`is-${kind}`);
+    state.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+    const text = document.createElement('span');
+    text.textContent = message;
+    state.append(text);
+    if (kind === 'empty') {
+      const reset = document.createElement('button');
+      reset.className = 'btn btn-sm btn-outline-primary mt-2';
+      reset.type = 'button';
+      reset.textContent = 'Reset filters';
+      reset.addEventListener('click', () => document.getElementById('dashboardReset').click());
+      state.append(reset);
+    } else if (kind === 'error') {
+      const retry = document.createElement('button');
+      retry.className = 'btn btn-sm btn-outline-danger mt-2';
+      retry.type = 'button';
+      retry.textContent = 'Retry';
+      retry.addEventListener('click', () => loadStats(false));
+      state.append(retry);
+    }
+    state.hidden = false;
   }
 
   function renderTopicTrend(data) {
@@ -244,7 +302,7 @@
         renderTopicTrend(payload);
       })
       .catch((error) => {
-        if (id === requestId && topicTrendId === topicTrendRequestId) chartState('topicTrend', `${error.message || 'Unable to load complaint topic trends.'} Retry by changing a filter.`);
+        if (id === requestId && topicTrendId === topicTrendRequestId) chartState('topicTrend', error.message || 'Unable to load complaint topic trends.');
       });
   }
 
@@ -252,8 +310,7 @@
     const topicId = ++topicRequestId;
     chartState('issues', 'Loading complaint issues…');
     document.getElementById('risingIssuesList').hidden = true;
-    document.getElementById('risingIssuesState').hidden = false;
-    document.getElementById('risingIssuesState').textContent = 'Loading rising issues…';
+    setRisingState('Loading rising issues…');
     return fetch(`/api/topics${query ? `?${query}` : ''}`, { headers: { Accept: 'application/json' } })
       .then(async (response) => {
         const payload = await response.json();
@@ -266,18 +323,19 @@
       })
       .catch((error) => {
         if (id === requestId && topicId === topicRequestId) {
-          chartState('issues', `${error.message || 'Unable to load complaint issues.'} Retry by changing a filter.`);
-          document.getElementById('risingIssuesState').textContent = 'Unable to load rising issues.';
+          chartState('issues', error.message || 'Unable to load complaint issues.');
+          setRisingState('Unable to load rising issues.', 'error');
           chartState('topicTrend', 'Unable to load complaint topic trends.');
         }
       });
   }
 
-  function setLoading(isLoading) {
+  function setLoading(isLoading, hasError = false) {
     loading.hidden = !isLoading;
     kpiCards.forEach((card) => {
       card.querySelector('.dashboard-skeleton').hidden = !isLoading;
-      card.querySelector('.dashboard-kpi-content').hidden = isLoading;
+      card.querySelector('.dashboard-kpi-content').hidden = isLoading || hasError;
+      card.querySelector('.dashboard-kpi-error').hidden = isLoading || !hasError;
     });
   }
 
@@ -348,6 +406,7 @@
     if (updateUrl) syncUrl();
     errorBox.hidden = true;
     setLoading(true);
+    let hasStatsError = false;
     const query = queryString(readFilters());
     chartState('sentiment', 'Loading sentiment distribution…');
     chartState('category', 'Loading category breakdown…');
@@ -366,11 +425,12 @@
       if (id !== requestId) return;
       errorMessage.textContent = error.message || 'Unable to load analytics.';
       errorBox.hidden = false;
+      hasStatsError = true;
       chartState('sentiment', 'Unable to load sentiment data. Retry to try again.');
       chartState('category', 'Unable to load category data. Retry to try again.');
     } finally {
       if (id === requestId) {
-        setLoading(false);
+        setLoading(false, hasStatsError);
         await Promise.all([topicsRequest, trendRequest]);
       }
     }
@@ -418,6 +478,14 @@
   });
   document.querySelectorAll('[data-dashboard-reset]').forEach((button) => button.addEventListener('click', () => document.getElementById('dashboardReset').click()));
   document.getElementById('dashboardRetry').addEventListener('click', () => loadStats(false));
+  document.querySelectorAll('[data-dashboard-retry]').forEach((button) => button.addEventListener('click', () => loadStats(false)));
+  document.getElementById('dashboardFiltersToggle').addEventListener('click', () => {
+    filtersOpen = !filtersOpen;
+    document.getElementById('dashboardFilters').classList.toggle('is-collapsed', !filtersOpen);
+    const toggle = document.getElementById('dashboardFiltersToggle');
+    toggle.setAttribute('aria-expanded', String(filtersOpen));
+    toggle.textContent = filtersOpen ? 'Hide filters' : 'Show filters';
+  });
   document.querySelectorAll('[data-issue-metric]').forEach((button) => button.addEventListener('click', () => {
     issueMetric = button.dataset.issueMetric;
     document.querySelectorAll('[data-issue-metric]').forEach((item) => {
