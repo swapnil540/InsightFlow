@@ -35,8 +35,16 @@ app.use((error, req, res, next) => {
   });
 });
 
-connectDatabase();
+async function startServer() {
+  // Wait for the first database connection attempt so the first page request
+  // does not report zero totals while Mongoose is still connecting.
+  await connectDatabase();
+  app.listen(PORT, () => {
+    console.log(`InsightFlow app listening on http://localhost:${PORT}`);
+  });
+}
 
-app.listen(PORT, () => {
-  console.log(`InsightFlow app listening on http://localhost:${PORT}`);
+startServer().catch((error) => {
+  console.error('InsightFlow failed to start:', error.message);
+  process.exitCode = 1;
 });
