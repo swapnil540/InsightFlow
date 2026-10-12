@@ -1,4 +1,20 @@
 const mongoose = require('mongoose');
+const INITIAL_RETRY_DELAY_MS = 5000;
+const MAX_RETRY_DELAY_MS = 30000;
+let retryTimer = null;
+let retryDelayMs = INITIAL_RETRY_DELAY_MS;
+let connectionAttempt = null;
+
+function scheduleReconnect() {
+  if (retryTimer || !process.env.MONGODB_URI) return;
+  const delay = retryDelayMs;
+  retryDelayMs = Math.min(retryDelayMs * 2, MAX_RETRY_DELAY_MS);
+  retryTimer = setTimeout(() => {
+    retryTimer = null;
+    connectDatabase();
+  }, delay);
+  retryTimer.unref();
+}
 
 async function connectDatabase() {
   const mongoUri = process.env.MONGODB_URI;
@@ -8,17 +24,30 @@ async function connectDatabase() {
     return false;
   }
 
-  try {
-    await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 5000,
-    });
+  if (mongoose.connection.readyState === 1) return true;
+  if (connectionAttempt) return connectionAttempt;
 
-    console.log('MongoDB connected successfully.');
-    return true;
-  } catch (error) {
-    console.error('MongoDB connection failed:', error.message);
-    return false;
-  }
+  connectionAttempt = (async () => {
+    try {
+      await mongoose.connect(mongoUri, {
+        serverSelectionTimeoutMS: 5000,
+      });
+
+      if (retryTimer) clearTimeout(retryTimer);
+      retryTimer = null;
+      retryDelayMs = INITIAL_RETRY_DELAY_MS;
+      console.log('MongoDB connected successfully.');
+      return true;
+    } catch (error) {
+      console.error('MongoDB connection failed:', error.message);
+      scheduleReconnect();
+      return false;
+    } finally {
+      connectionAttempt = null;
+    }
+  })();
+
+  return connectionAttempt;
 }
 
 mongoose.connection.on('connected', () => {
