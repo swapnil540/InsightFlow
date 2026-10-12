@@ -184,6 +184,7 @@ router.post('/import/sample', async (req, res) => {
   res.render('pages/import', {
     pageTitle: 'Import feedback',
     activeNav: 'import',
+    notice: undefined,
     sampleStatus: await getSampleStatus(),
     sampleNotice: status,
   });
