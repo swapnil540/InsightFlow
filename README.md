@@ -2,6 +2,8 @@
 
 InsightFlow is a customer-feedback analysis app being built for Build Battle 2026. The goal is to help teams turn customer reviews into useful themes, priorities, and decisions.
 
+## Deployed link: https://insightflow-ogl7.onrender.com/
+
 ## Current status
 
 The project currently contains the initial Express and EJS app shell and the
