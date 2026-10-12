@@ -8,6 +8,7 @@ const Feedback = require('../models/feedback');
 const Issue = require('../models/issue');
 const Report = require('../models/report');
 const AdaptionRun = require('../models/adaptionRun');
+const { buildAdaptionRunSeedData } = require('../services/adaptionRunSeedData');
 
 const root = path.resolve(__dirname, '..');
 
@@ -78,4 +79,20 @@ test('Phase 2 models declare required Feedback indexes and later-phase schemas',
   assert.equal(Issue.schema.path('status').defaultValue, 'open');
   assert.equal(Report.schema.path('token').options.unique, true);
   assert.deepEqual(AdaptionRun.schema.path('role').enumValues, ['smoke_test', 'labels', 'evaluation']);
+});
+
+test('Adaption run seed data has the three documented roles and preserves evaluation provenance', async () => {
+  const records = buildAdaptionRunSeedData(root);
+  assert.equal(records.length, 3);
+  assert.deepEqual(records.map((record) => record.role), ['smoke_test', 'labels', 'evaluation']);
+  assert.equal(new Set(records.map((record) => record.runId)).size, 3);
+  await Promise.all(records.map((record) => new AdaptionRun(record).validate()));
+  assert.equal(records[0].rowsIn, 50);
+  assert.equal(records[0].scoreAfter, 9.4);
+  assert.equal(records[1].rowsOut, 320);
+  assert.equal(records[1].scoreAfter, null);
+  assert.equal(records[2].runId, 'dataset-456aec4e-901a-4825-91b1-60b1a936e52f-1791778526064');
+  assert.equal(records[2].evaluatedOnRows, 100);
+  assert.equal(records[2].completionQualityAfter, 9.87);
+  assert.equal(records[2].notes, 'The source file had no completions, so most of the quality gain comes from Adaption generating them; prompt quality was essentially unchanged.');
 });

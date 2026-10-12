@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { defaultAnchor, loadSeedData, parseAnchor, summarize } = require('../services/seedData');
+const { buildAdaptionRunSeedData } = require('../services/adaptionRunSeedData');
 
 function validMongoUri(value) {
   if (!value || /your|placeholder|changeme|example/i.test(value)) return false;
@@ -29,6 +30,7 @@ async function main() {
   const anchor = anchorValue === undefined ? defaultAnchor() : parseAnchor(anchorValue);
   console.log(`Simulated timestamp anchor: ${anchor.toISOString()}`);
   const { feedbacks, analyses } = loadSeedData(undefined, { anchor });
+  const adaptionRuns = buildAdaptionRunSeedData();
   console.log(JSON.stringify(summarize(feedbacks, analyses), null, 2));
 
   if (!write && !verify) {
@@ -66,6 +68,10 @@ async function main() {
       });
       console.log('Seed upserts completed; existing non-seed records were retained.');
       await Feedback.bulkWrite(feedbackOps, { ordered: false });
+      const adaptionRunOps = adaptionRuns.map((doc) => ({
+        updateOne: { filter: { runId: doc.runId }, update: { $set: doc }, upsert: true },
+      }));
+      await AdaptionRun.bulkWrite(adaptionRunOps, { ordered: false });
     }
 
     const feedbackCount = await Feedback.countDocuments({ seedBatch: 'insightflow-phase2-v1' });
