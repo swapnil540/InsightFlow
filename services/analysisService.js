@@ -3,6 +3,10 @@ const Analysis = require('../models/analysis');
 const taxonomy = require('../config/taxonomy');
 const { CATEGORY_VALUES } = require('./filters');
 const { normalizeText, textHash } = require('./textHash');
+const { buildIndex, classify } = require('./similarityClassifier');
+const fs = require('node:fs');
+const path = require('node:path');
+const Feedback = require('../models/feedback');
 
 const topicByKey = new Map(taxonomy.map((topic) => [topic.key, topic]));
 const defaultTopics = {
@@ -30,6 +34,52 @@ const topicRules = [
   { topic: 'product_quality', pattern: /\b(quality|craftsmanship|material|defect|damaged product)\b/i },
   { topic: 'product_feature_functionality', pattern: /\b(feature|function(?:ality)?|performance|design|works well)\b/i },
 ];
+
+let similarityIndexPromise;
+
+function loadAdaptedFile() {
+  return JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'adapted_analysis.json'), 'utf8'));
+}
+
+async function loadAdaptedExamples() {
+  try {
+    if (mongoose.connection.readyState !== 1) throw new Error('Database is disconnected');
+    const cached = await Analysis.find({ producedBy: 'adaption' }).lean();
+    if (!cached.length) return loadAdaptedFile();
+    const hashes = cached.map((item) => item.textHash);
+    const feedbacks = await Feedback.find({ textHash: { $in: hashes } }).select('text textHash').lean();
+    const reviewsByHash = new Map(feedbacks.map((item) => [item.textHash, item.text]));
+    const fileByHash = new Map(loadAdaptedFile().map((item) => [item.textHash, item]));
+    const examples = cached.map((item) => {
+      const source = fileByHash.get(item.textHash);
+      return {
+        textHash: item.textHash,
+        review: reviewsByHash.get(item.textHash) || source?.review,
+        analysis: source?.analysis || {
+          sentiment: item.sentiment, sentimentScore: item.sentimentScore, topic: item.topic,
+          severity: item.severity, isComplaint: item.isComplaint,
+          issueSummary: item.issueSummary, suggestedAction: item.suggestedAction,
+        },
+      };
+    }).filter((item) => item.review && item.analysis?.topic);
+    return examples.length ? examples : loadAdaptedFile();
+  } catch {
+    return loadAdaptedFile();
+  }
+}
+
+async function getSimilarityIndex() {
+  if (!similarityIndexPromise) {
+    similarityIndexPromise = loadAdaptedExamples().then((examples) => {
+      console.log(`Similarity index loaded ${examples.length} Adaption-labelled examples.`);
+      return buildIndex(examples);
+    }).catch((error) => {
+      similarityIndexPromise = undefined;
+      throw error;
+    });
+  }
+  return similarityIndexPromise;
+}
 
 const positiveWords = /\b(love|great|excellent|amazing|wonderful|fantastic|helpful|friendly|fast|reliable|satisfied|happy|recommend|perfect|smooth|easy)\b/i;
 const negativeWords = /\b(bad|poor|terrible|awful|broken|damaged|defect(?:ive)?|late|delay(?:ed)?|scam|fraud|fake|rude|unhelpful|slow|crash(?:ed|es)?|glitch|problem|issue|missing|never arrived|overpriced|expensive|disappointed|waste)\b/i;
@@ -99,21 +149,99 @@ function cachedAnalysisFields(cached) {
     suggestedAction: cached.suggestedAction,
     producedBy: cached.producedBy,
     adaptionRunId: cached.adaptionRunId || null,
+    ...(cached.confidence === undefined ? {} : { confidence: cached.confidence }),
+    ...(cached.matchedTextHash ? { matchedTextHash: cached.matchedTextHash } : {}),
   };
 }
 
-async function analyzeText(text, { category } = {}) {
-  const normalized = normalizeText(text);
-  const hash = textHash(normalized);
-  if (mongoose.connection.readyState === 1) {
-    try {
-      const cached = await Analysis.findOne({ textHash: hash }).lean();
-      if (cached) return { analysis: cachedAnalysisFields(cached), fromCache: true };
-    } catch {
-      // A cache outage must not prevent the rules-based analysis from working.
-    }
-  }
-  return { analysis: buildRulesAnalysis(normalized, category), fromCache: false };
+function neutralFailure(text) {
+  const normalized = typeof text === 'string' ? normalizeText(text) : '';
+  return {
+    analysis: {
+      sentiment: 'neutral', sentimentScore: 0, topic: 'product_quality', severity: 1,
+      isComplaint: false,
+      issueSummary: normalized.split(/\s+/).filter(Boolean).slice(0, 12).join(' '),
+      suggestedAction: 'Monitor feedback for a clearer emerging pattern.',
+      producedBy: 'rules', adaptionRunId: null, confidence: 0,
+    },
+    confidence: 0, matchedTextHash: null, neighbours: [], fromCache: false, notAnalyzed: true,
+  };
 }
 
-module.exports = { analyzeText, buildRulesAnalysis };
+async function analyzeText(text) {
+  if (typeof text !== 'string') return neutralFailure('');
+  const normalized = normalizeText(text);
+  if (!normalized || normalized.length > 1000) return neutralFailure(normalized);
+  const hash = textHash(normalized);
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const cached = await Analysis.findOne({ textHash: hash }).lean();
+      if (cached) {
+        const source = await Feedback.findOne({ textHash: hash }).select('text').lean().catch(() => null);
+        const analysis = cachedAnalysisFields(cached);
+        analysis.confidence = 1;
+        analysis.matchedTextHash = hash;
+        return {
+          analysis, confidence: 1, matchedTextHash: hash,
+          neighbours: source?.text ? [{ textHash: hash, review: source.text, similarity: 1 }] : [],
+          fromCache: true, notAnalyzed: false,
+        };
+      }
+    }
+
+    const result = classify(await getSimilarityIndex(), normalized);
+    const analysis = {
+      ...result.analysis,
+      producedBy: 'similarity',
+      adaptionRunId: null,
+      confidence: result.confidence,
+      matchedTextHash: result.matchedTextHash || undefined,
+    };
+    if (mongoose.connection.readyState === 1 && result.confidence > 0) {
+      const cacheFields = {
+        textHash: hash,
+        sentiment: analysis.sentiment,
+        sentimentScore: analysis.sentimentScore,
+        topic: analysis.topic,
+        severity: analysis.severity,
+        isComplaint: analysis.isComplaint,
+        issueSummary: analysis.issueSummary,
+        suggestedAction: analysis.suggestedAction,
+        producedBy: 'similarity',
+        confidence: result.confidence,
+        matchedTextHash: result.matchedTextHash || undefined,
+        adaptionRunId: null,
+      };
+      try {
+        await Analysis.updateOne({ textHash: hash }, { $setOnInsert: cacheFields }, { upsert: true });
+        const saved = await Analysis.findOne({ textHash: hash }).lean();
+        if (saved?.producedBy === 'adaption') {
+          const preserved = cachedAnalysisFields(saved);
+          preserved.confidence = 1;
+          preserved.matchedTextHash = hash;
+          return { analysis: preserved, confidence: 1, matchedTextHash: hash, neighbours: result.neighbours, fromCache: true, notAnalyzed: false };
+        }
+      } catch {
+        // A cache write failure does not prevent the analysis from being returned.
+      }
+    }
+    return { ...result, analysis, fromCache: false, notAnalyzed: false };
+  } catch {
+    return neutralFailure(normalized);
+  }
+}
+
+async function analyzeMany(texts) {
+  if (!Array.isArray(texts)) return [];
+  const unique = new Map();
+  for (const text of texts) {
+    if (typeof text !== 'string') continue;
+    const normalized = normalizeText(text);
+    const hash = textHash(normalized);
+    if (!unique.has(hash)) unique.set(hash, analyzeText(normalized));
+  }
+  const resolved = new Map(await Promise.all([...unique].map(async ([hash, promise]) => [hash, await promise])));
+  return texts.map((text) => typeof text === 'string' ? resolved.get(textHash(normalizeText(text))) : neutralFailure(''));
+}
+
+module.exports = { analyzeText, analyzeMany, buildRulesAnalysis, getSimilarityIndex };

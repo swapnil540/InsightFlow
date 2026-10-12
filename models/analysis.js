@@ -10,9 +10,11 @@ const analysisSchema = new mongoose.Schema({
   isComplaint: { type: Boolean, required: true },
   issueSummary: { type: String, required: true, trim: true },
   suggestedAction: { type: String, required: true, trim: true },
-  producedBy: { type: String, required: true, enum: ['adaption', 'llm', 'fallback'] },
+  producedBy: { type: String, required: true, enum: ['adaption', 'similarity', 'llm-runtime', 'rules', 'llm', 'fallback'] },
   adaptionRunId: { type: String, default: null },
   seedBatch: { type: String, default: null },
+  confidence: { type: Number, min: 0, max: 1 },
+  matchedTextHash: { type: String, match: /^[a-f0-9]{40}$/ },
 }, { timestamps: true, versionKey: false });
 
 analysisSchema.index({ textHash: 1 }, { unique: true, name: 'one_analysis_per_text_hash' });

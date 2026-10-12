@@ -9,8 +9,10 @@ const embeddedAnalysisSchema = new mongoose.Schema({
   isComplaint: { type: Boolean, required: true },
   issueSummary: { type: String, required: true },
   suggestedAction: { type: String, required: true },
-  producedBy: { type: String, required: true, enum: ['adaption', 'llm', 'fallback', 'rules'] },
+  producedBy: { type: String, required: true, enum: ['adaption', 'similarity', 'llm-runtime', 'rules', 'llm', 'fallback'] },
   adaptionRunId: { type: String, default: null },
+  confidence: { type: Number, min: 0, max: 1 },
+  matchedTextHash: { type: String, match: /^[a-f0-9]{40}$/ },
 }, { _id: false });
 
 const feedbackSchema = new mongoose.Schema({

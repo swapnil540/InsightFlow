@@ -2,46 +2,44 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const taxonomy = require('../config/taxonomy');
 const Feedback = require('../models/feedback');
-const { analyzeText, buildRulesAnalysis } = require('../services/analysisService');
+const { buildRulesAnalysis } = require('../services/analysisService');
 const { parseImportCsv, MAX_IMPORT_ROWS, makeImportBatchId } = require('../services/csvImportService');
 const fs = require('node:fs');
 const path = require('node:path');
 
 const topicKeys = new Set(taxonomy.map((topic) => topic.key));
 
-test('rules treat fraud false alarms as positive and not complaints', async () => {
+test('rules treat fraud false alarms as positive and not complaints', () => {
   const examples = [
     'I was not a victim of fraud.',
     'No signs of fraudulent activity.',
     'No fraud was involved.',
   ];
   for (const text of examples) {
-    const result = await analyzeText(text, { category: 'Fraud and Scam' });
-    assert.equal(result.fromCache, false);
-    assert.equal(result.analysis.sentiment, 'positive', text);
-    assert.equal(result.analysis.isComplaint, false, text);
-    assert.equal(result.analysis.producedBy, 'rules');
+    const analysis = buildRulesAnalysis(text, 'Fraud and Scam');
+    assert.equal(analysis.sentiment, 'positive', text);
+    assert.equal(analysis.isComplaint, false, text);
+    assert.equal(analysis.producedBy, 'rules');
   }
 });
 
-test('rules map website crashes to the ordering topic and mark them as complaints', async () => {
-  const { analysis } = await analyzeText('The website crashes whenever I try to check out.', { category: 'Operational Issues' });
+test('rules map website crashes to the ordering topic and mark them as complaints', () => {
+  const analysis = buildRulesAnalysis('The website crashes whenever I try to check out.', 'Operational Issues');
   assert.equal(analysis.topic, 'order_processing_and_expectations');
   assert.equal(analysis.sentiment, 'negative');
   assert.equal(analysis.isComplaint, true);
   assert.equal(analysis.severity, 3);
 });
 
-test('rules map delivery delays to the delivery delay topic', async () => {
-  const { analysis } = await analyzeText('My delivery is late and delayed again.', { category: 'Operational Issues' });
+test('rules map delivery delays to the delivery delay topic', () => {
+  const analysis = buildRulesAnalysis('My delivery is late and delayed again.', 'Operational Issues');
   assert.equal(analysis.topic, 'delivery_delay');
   assert.equal(analysis.sentiment, 'negative');
   assert.equal(analysis.isComplaint, true);
 });
 
-test('rules recognize praise and keep all generated topics inside the taxonomy', async () => {
-  const { analysis, fromCache } = await analyzeText('I love the product quality; it is excellent.', { category: 'Product Feedback' });
-  assert.equal(fromCache, false);
+test('rules recognize praise and keep all generated topics inside the taxonomy', () => {
+  const analysis = buildRulesAnalysis('I love the product quality; it is excellent.', 'Product Feedback');
   assert.equal(analysis.sentiment, 'positive');
   assert.equal(analysis.isComplaint, false);
   assert.equal(analysis.severity, 1);
