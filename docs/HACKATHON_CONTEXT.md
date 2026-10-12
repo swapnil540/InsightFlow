@@ -246,8 +246,9 @@ the app's structured labels with its runtime LLM using the same schema.
 
 ## 6. Current phase status and next actions
 
-**Current phase: Phase 5 — dashboard. Phase 3 is complete and deployed to
-Render; Phase 4 implementation and live add-feedback verification are complete.**
+**Current phase: Phase 6 — priorities and recommendations. Phase 5 dashboard
+implementation is complete and pushed to `origin/main`; deployment verification
+is pending.**
 Before Phase 4 live feedback verification on 2026-10-12, the live database
 contained 7,014 feedback entries, 332 unique texts, 320 cached analyses, and 3
 Adaption runs. See the Phase 3 completion report below for added test data and
@@ -269,6 +270,7 @@ remaining deployment-check limitations.
 | Phase 2 verification | At Phase 2 close, `npm test` passed (5 tests) and the owner ran dry, write, and verify at anchor `2026-10-12T08:00:00Z`: 7,000 feedbacks, 320 analyses, 3 Adaption runs, zero missing analyses/invalid topics/embedded mismatches, and the expected recent trend. Render `/health` was later verified during Phase 3. See `docs/PHASE_2_REPORT.md`. |
 | Phase 3 app shell and feedback management | Complete and pushed. The live app supports feedback search/filtering, grouped/all views, manual entry, CSV preview/import, and safe sample loading. `npm test` passes (16 tests); live `/health` reports 7,014 feedbacks, 320 analyses, and 3 Adaption runs. |
 | Phase 4 runtime analysis | Classifier, leave-one-out evaluation, Mongo cache/API, add-feedback result, and CSV analysis are implemented and locally verified. Live Render add-feedback verification passed; CSV and API live flows remain unverified. Commits are listed in section 13. |
+| Phase 5 dashboard | Complete and pushed to `origin/main`; KPI cards, sentiment/topic charts, date trends, rising issues, shared filters, and simulated-data disclosure are implemented. The owner reported the dashboard working locally. Render deployment and some edge-state visual checks remain unverified. |
 
 ### Phase 2 simulated sample rules
 
@@ -292,6 +294,42 @@ Full-run estimate response: `estimated_credits_consumed: 4.0`,
 full run was launched.
 
 ## 13. Phase completion reports
+
+### Phase 5 completion report
+
+- **State:** dashboard implementation complete and pushed to `origin/main`.
+  Phase commits: `79bda85` dashboard breakdown charts; `4042dbb` dashboard
+  filter initialization fix; `d1559fc` overall trend chart; `54dd250` rising
+  issues and topic trend; `f27bfdc` loading and responsive-state polish.
+- **Files:** `services/statsService.js` supplies aggregated analytics;
+  `routes/api.js` exposes analytics endpoints; `routes/pages.js` serves the
+  dashboard; `views/pages/dashboard.ejs`, `public/js/dashboard.js`, and
+  `public/css/app.css` render the dashboard; `test/phase5.test.js` covers its
+  local contracts.
+- **Routes and contract:** `GET /dashboard` serves the dashboard. `GET
+  /api/stats`, `/api/topics`, and `/api/trends` return filtered analytics and
+  consume the shared whitelisted filters (`category`, `sentiment`, `topic`,
+  `source`, `from`, `to`). Invalid filter values return a client error; data
+  access or aggregation failures return a generic analytics error. Analytics
+  include only feedback with a usable analysis, topic, and sentiment.
+- **Decisions:** a complaint is counted only when `analysis.isComplaint ===
+  true`; the default time window ends on the latest feedback `createdAt` in the
+  filtered data; date buckets use UTC. Generated sample timestamps remain
+  disclosed as simulated.
+- **Verification:** `npm test` passed all 32 tests; `node --check
+  public/js/dashboard.js` and EJS rendering with stub data passed. The owner
+  reported that the dashboard works locally. Run `npm run dev` and open
+  `http://localhost:3000/dashboard` to inspect it. No live Atlas request was
+  made in this phase. The owner should verify the current Render deployment,
+  no-match results, API failure states, and narrow-screen layout from their
+  network/browser.
+- **Known issues:** Render redeployment has not been confirmed. The live
+  dashboard and the no-match, API-error, and mobile visual states were not
+  independently checked in this session. Atlas reachability depends on the
+  owner's network/IP allowlist.
+- **Exact next step:** begin Phase 6 priorities and recommendations: implement
+  the explainable priority score, evidence quotes, and grounded
+  recommendations with a fallback.
 
 ### Phase 4 completion report
 
@@ -457,8 +495,7 @@ full run was launched.
 - **Phase 4 — runtime analysis:** implementation complete; similar adapted
   examples, hash cache, API, feedback/import hooks, failure fallback, producer
   badge. Optional LLM fallback remains unimplemented.
-- **Phase 5 — dashboard:** aggregated KPIs, sentiment/topic charts, trends,
-  consistent shared filters, simulated-date disclosure.
+- **Phase 5 — dashboard:** complete; see Phase 5 completion report.
 - **Phase 6 — priorities/recommendations:** explainable score, evidence quotes,
   grounded recommendations with a fallback.
 - **Phase 7 — issue tracking/reports:** status, owner, notes, report snapshot,
@@ -518,7 +555,7 @@ full run was launched.
   values. Use the same `--anchor <ISO date-time>` value for dry/write/verify.
 - `/health` returns collection counts when connected; counts are `null` if
   the database is disconnected or count queries fail.
-- Current phase: **Phase 5 — dashboard**.
+- Current phase: **Phase 6 — priorities and recommendations**.
 
 After a phase, commit only reviewed intended files, update the progress log,
 record decisions/contract changes/known issues, and include a concise phase
