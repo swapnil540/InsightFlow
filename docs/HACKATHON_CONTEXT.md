@@ -247,9 +247,9 @@ the app's structured labels with its runtime LLM using the same schema.
 ## 6. Current phase status and next actions
 
 **Current phase: Phase 5 — dashboard. Phase 3 is complete and deployed to
-Render; Phase 4 implementation is complete and awaiting live verification.**
-The live app was verified on 2026-10-12; its database currently
-contains 7,014 feedback entries, 332 unique texts, 320 cached analyses, and 3
+Render; Phase 4 implementation and live add-feedback verification are complete.**
+Before Phase 4 live feedback verification on 2026-10-12, the live database
+contained 7,014 feedback entries, 332 unique texts, 320 cached analyses, and 3
 Adaption runs. See the Phase 3 completion report below for added test data and
 remaining deployment-check limitations.
 
@@ -268,7 +268,7 @@ remaining deployment-check limitations.
 | Phase 2 seed data | Complete: deterministic seeded RNG, anchor-based 90-day simulated timestamps, weighted `Review`/`Survey`/`Support` sources, 7,000 feedback rows, 320 cached analyses, and 3 AdaptionRun records. All seeded feedback is marked simulated. |
 | Phase 2 verification | At Phase 2 close, `npm test` passed (5 tests) and the owner ran dry, write, and verify at anchor `2026-10-12T08:00:00Z`: 7,000 feedbacks, 320 analyses, 3 Adaption runs, zero missing analyses/invalid topics/embedded mismatches, and the expected recent trend. Render `/health` was later verified during Phase 3. See `docs/PHASE_2_REPORT.md`. |
 | Phase 3 app shell and feedback management | Complete and pushed. The live app supports feedback search/filtering, grouped/all views, manual entry, CSV preview/import, and safe sample loading. `npm test` passes (16 tests); live `/health` reports 7,014 feedbacks, 320 analyses, and 3 Adaption runs. |
-| Phase 4 runtime analysis | Classifier, leave-one-out evaluation, Mongo cache/API, add-feedback result, and CSV analysis are implemented and locally verified. Live Render verification remains pending; commits are listed in section 13. |
+| Phase 4 runtime analysis | Classifier, leave-one-out evaluation, Mongo cache/API, add-feedback result, and CSV analysis are implemented and locally verified. Live Render add-feedback verification passed; CSV and API live flows remain unverified. Commits are listed in section 13. |
 
 ### Phase 2 simulated sample rules
 
@@ -295,8 +295,8 @@ full run was launched.
 
 ### Phase 4 completion report
 
-- **State:** implementation complete in four commits; deployed verification is
-  pending. `npm test` passes 24 tests. `npm run eval:classifier` reports
+- **State:** implementation complete and deployed add-feedback flow verified.
+  `npm test` passes 24 tests. `npm run eval:classifier` reports
   agreement with Adaption labels on 320 held-out examples: sentiment 95.94%
   (307/320), topic 79.69% (255/320), and complaint 96.88% (310/320). At
   confidence >= 0.5, agreement is 95.61% (283/296), 81.42% (241/296), and
@@ -329,8 +329,9 @@ full run was launched.
 - **Decisions and known issues:** the Analysis collection stores hashes and
   labels, but not review text, so the runtime joins Adaption hashes to
   Feedback text; it uses `data/adapted_analysis.json` when the database is
-  empty or unavailable. Local checks used that file fallback; database writes
-  and live Render add-feedback/import flows still need verification.
+  empty or unavailable. Local checks used that file fallback. Live Render
+  add-feedback was verified with the negated fraud example below; live
+  `/api/analyze` and CSV import flows have not been verified.
   Similarity confidence is the top cosine score and is not calibrated as a
   probability. No LLM fallback was added; it remains optional and needs a
   separate explicit go-ahead.
@@ -338,13 +339,17 @@ full run was launched.
   the metrics above. Local analysis checks covered a negated fraud mention, a
   seller-not-sending-product complaint, and unanswered support emails. The
   `/api/analyze` smoke check returned 200 for valid text and 400 for blank
-  text.
+  text. On 2026-10-12, the live Render add-feedback flow accepted "I was not a
+  victim of fraud, the seller was honest and sent the genuine item" and showed
+  Positive, topic Counterfeit or Misrepresentation, severity 1/5, complaint
+  No, 70% confidence, and a matching Adaption-labelled example.
 - **Commits:** `841d519` Similarity classifier; `048d8ab` Evaluate similarity
   classifier; `ac57d7b` Add database-backed runtime analysis; `c3afe73`
-  Runtime analysis in add feedback and CSV import. The Phase 4 documentation
-  and deployment commit is pending.
-- **Exact next step:** verify the deployed `/api/analyze`, add-feedback, and
-  CSV flows on Render, then begin Phase 5 dashboard work.
+  Runtime analysis in add feedback and CSV import; `551cef3` Phase 4 complete;
+  `bd2acc5` added the deployed URL to the README; a follow-up commit records
+  live add-feedback verification.
+- **Exact next step:** begin Phase 5 dashboard work. Live `/api/analyze` and
+  CSV import verification remain open.
 
 ### Phase 1 completion report
 
