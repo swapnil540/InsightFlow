@@ -4,6 +4,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { normalizeText, textHash } = require('../services/textHash');
 const { DAY_MS, SOURCE_VALUES, loadSeedData, summarize, buildSeedData } = require('../services/seedData');
+const Feedback = require('../models/feedback');
+const Issue = require('../models/issue');
+const Report = require('../models/report');
+const AdaptionRun = require('../models/adaptionRun');
 
 const root = path.resolve(__dirname, '..');
 
@@ -64,4 +68,14 @@ test('seed records retain source rows with deterministic 90-day dates and weight
 test('seed builder rejects mismatched hashes and missing analysis references', () => {
   assert.throws(() => buildSeedData({ csvText: 'review,category\nHi,Product Feedback\n', analyses: [{ textHash: 'bad', review: 'Hi' }] }), /hash mismatch/);
   assert.throws(() => buildSeedData({ csvText: 'review,category\nHi,Product Feedback\n', analyses: [] }), /No adapted analysis/);
+});
+
+test('Phase 2 models declare required Feedback indexes and later-phase schemas', () => {
+  const feedbackIndexes = Feedback.schema.indexes().map(([keys]) => Object.keys(keys).join(','));
+  for (const expected of ['textHash', 'createdAt', 'analysis.topic', 'analysis.sentiment', 'originalCategory', 'source', 'text']) {
+    assert.ok(feedbackIndexes.includes(expected), `Missing Feedback index for ${expected}`);
+  }
+  assert.equal(Issue.schema.path('status').defaultValue, 'open');
+  assert.equal(Report.schema.path('token').options.unique, true);
+  assert.deepEqual(AdaptionRun.schema.path('role').enumValues, ['smoke_test', 'labels', 'evaluation']);
 });

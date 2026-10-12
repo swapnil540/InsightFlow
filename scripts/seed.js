@@ -42,8 +42,12 @@ async function main() {
   try {
     const Feedback = require('../models/feedback');
     const Analysis = require('../models/analysis');
-    await Promise.all([Feedback.createCollection(), Analysis.createCollection()]);
-    await Promise.all([Feedback.ensureIndexes(), Analysis.ensureIndexes()]);
+    const Issue = require('../models/issue');
+    const Report = require('../models/report');
+    const AdaptionRun = require('../models/adaptionRun');
+    const models = [Feedback, Analysis, Issue, Report, AdaptionRun];
+    await Promise.all(models.map((Model) => Model.createCollection()));
+    await Promise.all(models.map((Model) => Model.ensureIndexes()));
 
     if (write) {
       const analysisOps = analyses.map((doc) => ({ updateOne: { filter: { textHash: doc.textHash }, update: { $setOnInsert: doc }, upsert: true } }));

@@ -27,7 +27,12 @@ const feedbackSchema = new mongoose.Schema({
 
 // Content hashes deliberately are not unique: the source CSV contains duplicates.
 feedbackSchema.index({ textHash: 1 }, { name: 'feedback_text_hash' });
-feedbackSchema.index({ originalCategory: 1, createdAt: -1 }, { name: 'category_created_at' });
+feedbackSchema.index({ createdAt: 1 }, { name: 'feedback_created_at' });
+feedbackSchema.index({ 'analysis.topic': 1 }, { name: 'feedback_analysis_topic' });
+feedbackSchema.index({ 'analysis.sentiment': 1 }, { name: 'feedback_analysis_sentiment' });
+feedbackSchema.index({ originalCategory: 1 }, { name: 'feedback_original_category' });
+feedbackSchema.index({ source: 1 }, { name: 'feedback_source' });
+feedbackSchema.index({ text: 'text' }, { name: 'feedback_text_search' });
 feedbackSchema.index({ seedKey: 1 }, { unique: true, sparse: true, name: 'seed_row_idempotency' });
 
 module.exports = mongoose.models.Feedback || mongoose.model('Feedback', feedbackSchema);
