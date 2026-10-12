@@ -213,7 +213,11 @@
     const params = new URLSearchParams(location.search);
     for (const [key, control] of Object.entries(controls)) {
       const value = params.get(key) || '';
-      if ([...control.options].some((option) => option.value === value)) control.value = value;
+      if (!value) continue;
+      // Select filters must match a known option; date inputs are validated by the API.
+      if (control.tagName !== 'SELECT' || [...control.options].some((option) => option.value === value)) {
+        control.value = value;
+      }
     }
     if (controls.from.value || controls.to.value) document.getElementById('datePreset').value = 'custom';
   }
