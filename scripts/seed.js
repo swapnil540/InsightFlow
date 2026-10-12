@@ -1,6 +1,21 @@
 const mongoose = require('mongoose');
 const { defaultAnchor, loadSeedData, parseAnchor, summarize } = require('../services/seedData');
 const { buildAdaptionRunSeedData } = require('../services/adaptionRunSeedData');
+const taxonomy = require('../config/taxonomy');
+
+const SEED_BATCH = 'insightflow-phase2-v1';
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function mondayUtc(date) {
+  const monday = new Date(date);
+  monday.setUTCHours(0, 0, 0, 0);
+  monday.setUTCDate(monday.getUTCDate() - ((monday.getUTCDay() + 6) % 7));
+  return monday;
+}
+
+function percent(numerator, denominator) {
+  return denominator ? Number(((numerator / denominator) * 100).toFixed(2)) : 0;
+}
 
 function validMongoUri(value) {
   if (!value || /your|placeholder|changeme|example/i.test(value)) return false;
@@ -74,37 +89,167 @@ async function main() {
       await AdaptionRun.bulkWrite(adaptionRunOps, { ordered: false });
     }
 
-    const feedbackCount = await Feedback.countDocuments({ seedBatch: 'insightflow-phase2-v1' });
+    const seedFilter = { seedBatch: SEED_BATCH };
     const datasetHashes = analyses.map((item) => item.textHash);
     const analysisCount = await Analysis.countDocuments({ textHash: { $in: datasetHashes } });
-    const simulatedCount = await Feedback.countDocuments({ seedBatch: 'insightflow-phase2-v1', isSimulated: true });
-    const categoryCounts = await Feedback.aggregate([
-      { $match: { seedBatch: 'insightflow-phase2-v1' } },
-      { $group: { _id: '$originalCategory', count: { $sum: 1 } } },
-      { $sort: { _id: 1 } },
+    const [feedbackCount, adaptionRunCount, simulatedCount, missingAnalysisResult, invalidTopicCount, invalidEmbeddedAnalysisCount] = await Promise.all([
+      Feedback.countDocuments(seedFilter),
+      AdaptionRun.countDocuments({ runId: { $in: adaptionRuns.map((item) => item.runId) } }),
+      Feedback.countDocuments({ ...seedFilter, isSimulated: true }),
+      Feedback.aggregate([
+        { $match: seedFilter },
+        { $lookup: { from: Analysis.collection.name, localField: 'textHash', foreignField: 'textHash', as: 'cachedAnalysis' } },
+        { $match: { cachedAnalysis: { $eq: [] } } },
+        { $count: 'count' },
+      ]),
+      Feedback.countDocuments({ ...seedFilter, 'analysis.topic': { $nin: taxonomy.map((item) => item.key) } }),
+      Feedback.countDocuments({
+        ...seedFilter,
+        $or: [
+          { 'analysis.sentiment': { $exists: false } }, { 'analysis.topic': { $exists: false } },
+          { 'analysis.sentimentScore': { $exists: false } }, { 'analysis.severity': { $exists: false } },
+        ],
+      }),
     ]);
-    const embeddedCount = await Feedback.countDocuments({
-      seedBatch: 'insightflow-phase2-v1',
-      $or: [
-        { 'analysis.sentiment': { $exists: false } }, { 'analysis.topic': { $exists: false } },
-        { 'analysis.sentimentScore': { $exists: false } }, { 'analysis.severity': { $exists: false } },
-      ],
-    });
-    const seededFeedback = await Feedback.find({ seedBatch: 'insightflow-phase2-v1' }).select('textHash analysis').lean();
-    const seededAnalyses = await Analysis.find({ textHash: { $in: datasetHashes } }).lean();
+    const missingAnalysisCount = missingAnalysisResult[0]?.count || 0;
+    const [seededFeedback, seededAnalyses] = await Promise.all([
+      Feedback.find(seedFilter).select('textHash analysis').lean(),
+      Analysis.find({ textHash: { $in: datasetHashes } }).lean(),
+    ]);
     const cacheByHash = new Map(seededAnalyses.map((item) => [item.textHash, item]));
     const comparisonFields = ['sentiment', 'sentimentScore', 'topic', 'severity', 'isComplaint', 'issueSummary', 'suggestedAction', 'producedBy', 'adaptionRunId'];
-    const inconsistentReferences = seededFeedback.filter((feedback) => {
+    const inconsistentAnalysisReferenceCount = seededFeedback.filter((feedback) => {
       const cache = cacheByHash.get(feedback.textHash);
       return !cache || comparisonFields.some((key) => (feedback.analysis?.[key] ?? null) !== (cache[key] ?? null));
     }).length;
-    const actual = { feedbackCount, analysisCount, simulatedCount, categoryCounts, invalidEmbeddedAnalysisCount: embeddedCount, inconsistentAnalysisReferenceCount: inconsistentReferences };
+    const groupedCounts = async (field) => Feedback.aggregate([
+      { $match: seedFilter },
+      { $group: { _id: `$${field}`, count: { $sum: 1 } } },
+      { $sort: { count: -1, _id: 1 } },
+    ]);
+    const [categoryCounts, sentimentCounts, sourceCounts, dateRangeResult, complaintTopicsRaw] = await Promise.all([
+      groupedCounts('originalCategory'),
+      groupedCounts('analysis.sentiment'),
+      groupedCounts('source'),
+      Feedback.aggregate([
+        { $match: seedFilter },
+        { $group: { _id: null, min: { $min: '$createdAt' }, max: { $max: '$createdAt' } } },
+      ]),
+      Feedback.aggregate([
+        { $match: { ...seedFilter, 'analysis.isComplaint': true } },
+        { $group: {
+          _id: '$analysis.topic',
+          mentions: { $sum: 1 },
+          uniqueTextHashes: { $addToSet: '$textHash' },
+        } },
+        { $project: { _id: 0, topic: '$_id', mentions: 1, uniquePhrasings: { $size: '$uniqueTextHashes' } } },
+        { $sort: { mentions: -1, topic: 1 } },
+      ]),
+    ]);
+    const dateRange = dateRangeResult[0] || { min: null, max: null };
+    const dateWindowCounts = {};
+    for (const days of [7, 21, 90]) {
+      dateWindowCounts[`last${days}Days`] = await Feedback.countDocuments({
+        ...seedFilter,
+        createdAt: { $gte: new Date(anchor.getTime() - days * DAY_MS), $lte: anchor },
+      });
+    }
+
+    const currentWeek = mondayUtc(anchor);
+    const firstWeek = new Date(currentWeek.getTime() - 12 * 7 * DAY_MS);
+    const weeklyRaw = await Feedback.aggregate([
+      { $match: { ...seedFilter, 'analysis.isComplaint': true, createdAt: { $gte: firstWeek, $lte: anchor } } },
+      { $group: {
+        _id: { $dateTrunc: { date: '$createdAt', unit: 'week', startOfWeek: 'monday', timezone: 'UTC' } },
+        complaints: { $sum: 1 },
+      } },
+    ]);
+    const weeklyByDate = new Map(weeklyRaw.map((item) => [item._id.toISOString(), item.complaints]));
+    const complaintsPerWeek = Array.from({ length: 13 }, (_, index) => {
+      const weekStart = new Date(firstWeek.getTime() + index * 7 * DAY_MS);
+      return { weekStarting: weekStart.toISOString().slice(0, 10), complaints: weeklyByDate.get(weekStart.toISOString()) || 0 };
+    });
+
+    const storyTopicConditions = [
+      { 'analysis.topic': /^fraud_/ },
+      { 'analysis.topic': 'delivery_delay' },
+    ];
+    const storyFilter = { ...seedFilter, 'analysis.isComplaint': true, $or: storyTopicConditions };
+    const allOtherFilter = { ...seedFilter, $nor: [
+      { 'analysis.isComplaint': true, 'analysis.topic': /^fraud_/ },
+      { 'analysis.isComplaint': true, 'analysis.topic': 'delivery_delay' },
+    ] };
+    const cutoff21 = new Date(anchor.getTime() - 21 * DAY_MS);
+    const recentWindow = { createdAt: { $gte: cutoff21, $lte: anchor } };
+    const [storyTotal, storyRecent, otherTotal, otherRecent, recentFeedbackTotal] = await Promise.all([
+      Feedback.countDocuments(storyFilter),
+      Feedback.countDocuments({ ...storyFilter, ...recentWindow }),
+      Feedback.countDocuments(allOtherFilter),
+      Feedback.countDocuments({ ...allOtherFilter, ...recentWindow }),
+      Feedback.countDocuments({ ...seedFilter, ...recentWindow }),
+    ]);
+    const storyTrend = {
+      recentWindowDays: 21,
+      storyComplaints: {
+        recentCount: storyRecent,
+        cohortTotal: storyTotal,
+        recentSharePercent: percent(storyRecent, storyTotal),
+        shareOfRecentFeedbackPercent: percent(storyRecent, recentFeedbackTotal),
+      },
+      allOtherFeedback: {
+        recentCount: otherRecent,
+        cohortTotal: otherTotal,
+        recentSharePercent: percent(otherRecent, otherTotal),
+      },
+      allRecentFeedbackCount: recentFeedbackTotal,
+    };
+    const textSearchResults = await Feedback.find({ $text: { $search: 'scam' } })
+      .limit(3)
+      .select('text textHash originalCategory source createdAt analysis')
+      .lean();
+    const samples = await Feedback.find(seedFilter)
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('text textHash originalCategory source createdAt isSimulated analysis')
+      .lean();
+    const actual = {
+      anchor: anchor.toISOString(),
+      counts: { feedbacks: feedbackCount, analyses: analysisCount, adaptionruns: adaptionRunCount },
+      checks: {
+        feedbacksWithoutMatchingAnalysis: missingAnalysisCount,
+        feedbacksWithTopicsOutsideTaxonomy: invalidTopicCount,
+        invalidEmbeddedAnalysisCount,
+        inconsistentAnalysisReferenceCount,
+        simulatedFeedbacks: simulatedCount,
+      },
+      countsBy: { originalCategory: categoryCounts, sentiment: sentimentCounts, source: sourceCounts },
+      createdAt: { min: dateRange.min, max: dateRange.max, countsInWindow: dateWindowCounts },
+      complaintsByTopic: complaintTopicsRaw,
+      complaintsPerWeekLast13Weeks: complaintsPerWeek,
+      storyTrendLast21Days: storyTrend,
+      textSearchScam: { resultCount: textSearchResults.length, results: textSearchResults },
+      sampleFeedback: samples,
+    };
     console.log(JSON.stringify(actual, null, 2));
+
+    const checksPassed = feedbackCount === 7000
+      && analysisCount === 320
+      && adaptionRunCount === 3
+      && simulatedCount === 7000
+      && missingAnalysisCount === 0
+      && invalidTopicCount === 0
+      && invalidEmbeddedAnalysisCount === 0
+      && inconsistentAnalysisReferenceCount === 0
+      && textSearchResults.length > 0
+      && storyTrend.storyComplaints.recentSharePercent >= 35
+      && storyTrend.storyComplaints.recentSharePercent <= 55
+      && storyTrend.allOtherFeedback.recentSharePercent >= 18
+      && storyTrend.allOtherFeedback.recentSharePercent <= 28;
     const expectedCategories = { 'Customer Service': 1707, 'Fraud and Scam': 1755, 'Operational Issues': 1800, 'Product Feedback': 1738 };
     const actualCategories = Object.fromEntries(categoryCounts.map(({ _id, count }) => [_id, count]));
-    if (feedbackCount !== 7000 || analysisCount !== 320 || simulatedCount !== 7000 || embeddedCount !== 0 || inconsistentReferences !== 0 || JSON.stringify(actualCategories) !== JSON.stringify(expectedCategories)) {
-      throw new Error('Database verification failed: seeded totals or embedded analysis fields do not match expectations.');
-    }
+    const categoriesMatch = Object.keys(expectedCategories).every((key) => actualCategories[key] === expectedCategories[key])
+      && Object.keys(actualCategories).length === Object.keys(expectedCategories).length;
+    if (!checksPassed || !categoriesMatch) throw new Error('Database verification failed: review the reported counts, references, topics, categories, text search, or recent trend shares.');
   } finally {
     await mongoose.disconnect();
   }
