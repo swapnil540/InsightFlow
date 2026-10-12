@@ -36,11 +36,6 @@
             </select>
             <% if (errors.source) { %><div class="invalid-feedback" id="feedbackSourceError"><%= errors.source %></div><% } %>
           </div>
-          <div class="col-12 col-md-6">
-            <label class="form-label fw-semibold" for="feedbackDate">Date <span class="text-secondary fw-normal">(optional)</span></label>
-            <input class="form-control <%= errors.date ? 'is-invalid' : '' %>" id="feedbackDate" type="date" name="date" value="<%= values.date || '' %>" aria-describedby="feedbackDateError" />
-            <% if (errors.date) { %><div class="invalid-feedback" id="feedbackDateError"><%= errors.date %></div><% } %>
-          </div>
         </div>
 
         <div class="d-flex flex-column flex-sm-row justify-content-end gap-2 mt-4">

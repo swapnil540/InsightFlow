@@ -6,48 +6,46 @@ const { normalizeText, textHash } = require('./textHash');
 
 const topicByKey = new Map(taxonomy.map((topic) => [topic.key, topic]));
 
-function validDateInput(value) {
-  if (!value) return undefined;
-  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-  const date = new Date(`${value}T12:00:00.000Z`);
-  return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value ? null : date;
-}
-
 function validateNewFeedback(body = {}) {
   const errors = {};
   const rawText = typeof body.text === 'string' ? body.text : '';
   const text = normalizeText(rawText);
   const category = typeof body.category === 'string' ? body.category.trim() : '';
-  const source = typeof body.source === 'string' ? body.source.trim() : '';
-  const dateInput = typeof body.date === 'string' ? body.date.trim() : '';
-  const date = validDateInput(dateInput);
+  const rawSource = typeof body.source === 'string' ? body.source.trim() : '';
+  const source = rawSource || 'Review';
 
   if (text.length < 10) errors.text = 'Enter at least 10 characters of feedback.';
   else if (text.length > 1000) errors.text = 'Feedback must be 1,000 characters or fewer.';
   if (category && !CATEGORY_VALUES.includes(category)) errors.category = 'Choose a listed category or leave it on auto.';
   if (!SOURCE_VALUES.includes(source)) errors.source = 'Choose Review, Survey, or Support.';
-  if (date === null) errors.date = 'Enter a valid date.';
-
   return {
     errors,
-    values: { text, category, source, date: dateInput },
-    date: date || undefined,
+    values: { text, category, source },
   };
 }
 
 async function createFeedback(values) {
-  const { analysis } = await analyzeText(values.text, { category: values.category || undefined });
+  const analysisResult = await analyzeText(values.text);
+  const { analysis } = analysisResult;
   const topic = topicByKey.get(analysis.topic);
   const feedback = await Feedback.create({
     text: values.text,
     textHash: textHash(values.text),
-    originalCategory: values.category || topic.parentCategory,
-    source: values.source,
-    createdAt: values.date || new Date(),
+    originalCategory: values.category || topic?.parentCategory || 'Product Feedback',
+    source: values.source || 'Review',
+    createdAt: new Date(),
     isSimulated: false,
     analysis,
   });
-  return feedback;
+  return {
+    feedback,
+    analysisResult: {
+      ...analysisResult,
+      topicLabel: topic?.label || 'Unknown topic',
+      topicParentCategory: topic?.parentCategory || 'Unknown category',
+      matchedExample: analysisResult.neighbours?.[0] || null,
+    },
+  };
 }
 
 function sortForAll(sort) {

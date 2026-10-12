@@ -134,7 +134,7 @@
               <% if (filters.view === 'grouped') { %><th scope="col">Mentions</th><% } %>
             </tr></thead>
             <tbody>
-              <% rows.forEach((row) => { const feedback = row.feedback; const analysis = feedback.analysis || {}; const displayDate = row.latest || feedback.createdAt; const provider = analysis.producedBy === 'adaption' ? 'Adaption' : analysis.producedBy === 'llm' ? 'AI' : 'Basic rules'; %>
+              <% rows.forEach((row) => { const feedback = row.feedback; const analysis = feedback.analysis || {}; const displayDate = row.latest || feedback.createdAt; const confidence = typeof analysis.confidence === 'number' ? analysis.confidence : null; const provider = analysis.notAnalyzed ? 'Not analysed' : ({ adaption: 'Adaption', similarity: 'Similarity', 'llm-runtime': 'LLM', llm: 'LLM', rules: 'Basic rules', fallback: 'Basic rules' })[analysis.producedBy] || 'Unknown'; %>
                 <tr>
                   <td class="feedback-date">
                     <time datetime="<%= new Date(displayDate).toISOString() %>"><%= new Date(displayDate).toLocaleDateString() %></time>
@@ -147,6 +147,7 @@
                       data-topic="<%= row.topicLabel %>" data-parent-category="<%= row.topicParentCategory %>"
                       data-severity="<%= analysis.severity || 0 %>" data-complaint="<%= analysis.isComplaint ? 'Yes' : 'No' %>"
                       data-summary="<%= analysis.issueSummary || '' %>" data-action="<%= analysis.suggestedAction || '' %>"
+                      data-confidence="<%= confidence === null ? '' : Math.round(confidence * 100) + '%' %>"
                       data-source="<%= feedback.source %>" data-date="<%= new Date(displayDate).toISOString() %>"
                       data-simulated="<%= feedback.isSimulated ? 'true' : 'false' %>" data-provider="<%= provider %>"
                       data-mentions="<%= row.mentions %>" data-all-href="<%= row.allHref %>"><%= feedback.text %></button>
@@ -157,7 +158,7 @@
                   <td class="d-none d-lg-table-cell"><%= row.topicLabel %></td>
                   <td class="d-none d-md-table-cell"><%- include('../partials/severity-dots', { severity: analysis.severity }) %></td>
                   <td class="d-none d-lg-table-cell"><%= analysis.isComplaint ? 'Yes' : 'No' %></td>
-                  <td class="d-none d-lg-table-cell"><span class="provider-badge"><%= provider %></span></td>
+                  <td class="d-none d-lg-table-cell"><span class="provider-badge" title="<%= confidence === null ? 'Confidence unavailable' : `Confidence ${Math.round(confidence * 100)}%` %>"><%= provider %><% if (confidence !== null) { %> <small><%= Math.round(confidence * 100) %>%</small><% } %></span></td>
                   <% if (filters.view === 'grouped') { %><td><span class="mention-badge">× <%= row.mentions %> mentions</span></td><% } %>
                 </tr>
               <% }); %>
@@ -192,6 +193,7 @@
           <div class="col-6 col-md-4"><span>Source</span><strong id="detailSource"></strong></div>
           <div class="col-6 col-md-4"><span>Date</span><strong id="detailDate"></strong></div>
           <div class="col-6 col-md-4"><span>Analysis by</span><strong id="detailProvider"></strong></div>
+          <div class="col-6 col-md-4"><span>Confidence</span><strong id="detailConfidence"></strong></div>
           <div class="col-12"><span>Issue summary</span><p id="detailSummary" class="mb-0"></p></div>
           <div class="col-12"><span>Suggested action</span><p id="detailAction" class="mb-0"></p></div>
           <div class="col-12" id="detailMentionsWrap"><span>Grouped mentions</span><strong id="detailMentions"></strong></div>

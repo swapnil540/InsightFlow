@@ -1,0 +1,38 @@
+<section class="placeholder-page">
+  <div class="container">
+    <div class="surface-card add-feedback-card mx-auto">
+      <p class="eyebrow mb-2">Feedback analyzed</p>
+      <h1 class="h2 fw-bold mb-3">Your feedback is ready</h1>
+      <blockquote class="detail-quote mb-4"><%= feedback.text %></blockquote>
+
+      <% if (analysisResult.notAnalyzed) { %>
+        <div class="alert alert-warning" role="status">Not analysed: the similarity service was unavailable, so this feedback received a neutral fallback label.</div>
+      <% } %>
+      <div class="d-flex flex-wrap gap-2 mb-4">
+        <%- include('../partials/sentiment-badge', { sentiment: feedback.analysis.sentiment }) %>
+        <% if (lowConfidence) { %><span class="badge text-bg-warning">Low confidence</span><% } %>
+        <span class="provider-badge"><%= analysisResult.notAnalyzed ? 'Not analysed' : ({ adaption: 'Adaption', similarity: 'Similarity', 'llm-runtime': 'LLM', llm: 'LLM', rules: 'Basic rules' })[feedback.analysis.producedBy] || 'Unknown' %></span>
+      </div>
+
+      <div class="row g-3 detail-grid mb-4">
+        <div class="col-6 col-md-3"><span>Topic</span><strong><%= analysisResult.topicLabel %></strong></div>
+        <div class="col-6 col-md-3"><span>Severity</span><strong><%= feedback.analysis.severity %> / 5</strong></div>
+        <div class="col-6 col-md-3"><span>Complaint</span><strong><%= feedback.analysis.isComplaint ? 'Yes' : 'No' %></strong></div>
+        <div class="col-6 col-md-3"><span>Confidence</span><strong><%= Math.round(analysisResult.confidence * 100) %>%</strong></div>
+        <div class="col-12"><span>Suggested action</span><p class="mb-0"><%= feedback.analysis.suggestedAction %></p></div>
+      </div>
+
+      <% if (analysisResult.matchedExample) { %>
+        <p class="small text-secondary">
+          <% if (feedback.analysis.producedBy === 'similarity') { %>Labelled by similarity to an Adaption-labelled example<% } else { %>Matched a cached analysis example<% } %>:
+          “<%= analysisResult.matchedExample.review %>” (match <%= Math.round(analysisResult.confidence * 100) %>%)
+        </p>
+      <% } %>
+
+      <div class="d-flex flex-wrap gap-2 justify-content-end mt-4">
+        <a class="btn btn-outline-secondary" href="/feedback/new">Add another</a>
+        <a class="btn btn-primary" href="/feedback?view=all&amp;q=<%= encodeURIComponent(feedback.text.slice(0, 100)) %>">View feedback</a>
+      </div>
+    </div>
+  </div>
+</section>

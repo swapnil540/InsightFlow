@@ -139,13 +139,13 @@ router.get('/feedback/new', (req, res) => {
     activeNav: 'feedback',
     categories: CATEGORY_VALUES,
     sources: SOURCE_VALUES,
-    values: { text: '', category: '', source: 'Review', date: new Date().toISOString().slice(0, 10) },
+    values: { text: '', category: '', source: 'Review' },
     errors: {},
   });
 });
 
 router.post('/feedback', async (req, res) => {
-  const { errors, values, date } = validateNewFeedback(req.body);
+  const { errors, values } = validateNewFeedback(req.body);
   if (Object.keys(errors).length) {
     return res.status(400).render('pages/feedback-new', {
       pageTitle: 'Add feedback',
@@ -157,9 +157,14 @@ router.post('/feedback', async (req, res) => {
     });
   }
 
-  await createFeedback({ ...values, date });
-  const params = new URLSearchParams({ view: 'all', q: values.text.slice(0, 100), notice: 'added' });
-  res.redirect(`/feedback?${params.toString()}`);
+  const { feedback, analysisResult } = await createFeedback(values);
+  res.render('pages/feedback-result', {
+    pageTitle: 'Feedback analyzed',
+    activeNav: 'feedback',
+    feedback,
+    analysisResult,
+    lowConfidence: analysisResult.confidence < 0.5,
+  });
 });
 
 router.get('/import/template.csv', (req, res) => {

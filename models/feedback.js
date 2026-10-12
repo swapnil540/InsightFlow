@@ -13,6 +13,7 @@ const embeddedAnalysisSchema = new mongoose.Schema({
   adaptionRunId: { type: String, default: null },
   confidence: { type: Number, min: 0, max: 1 },
   matchedTextHash: { type: String, match: /^[a-f0-9]{40}$/ },
+  notAnalyzed: { type: Boolean, default: false },
 }, { _id: false });
 
 const feedbackSchema = new mongoose.Schema({

@@ -2,7 +2,7 @@ const { parse } = require('csv-parse/sync');
 const Feedback = require('../models/feedback');
 const Analysis = require('../models/analysis');
 const { CATEGORY_VALUES, SOURCE_VALUES } = require('./filters');
-const { analyzeText } = require('./analysisService');
+const { analyzeMany } = require('./analysisService');
 const { normalizeText, textHash } = require('./textHash');
 
 const MAX_IMPORT_ROWS = 10000;
@@ -158,11 +158,15 @@ async function confirmImport(storedRows) {
   for (const row of storedRows) if (!uniqueRows.has(row.textHash)) uniqueRows.set(row.textHash, row);
   const analysesByHash = new Map();
   let newAnalysisCount = 0;
-  for (const row of uniqueRows.values()) {
-    const result = await analyzeText(row.text, { category: row.category || undefined });
+  const uniqueList = [...uniqueRows.values()];
+  const results = await analyzeMany(uniqueList.map((row) => row.text));
+  let lowConfidenceCount = 0;
+  uniqueList.forEach((row, index) => {
+    const result = results[index];
     analysesByHash.set(row.textHash, result.analysis);
     if (!result.fromCache) newAnalysisCount += 1;
-  }
+    if (result.notAnalyzed || result.confidence < 0.5) lowConfidenceCount += 1;
+  });
 
   const importBatch = makeImportBatchId();
   const now = new Date();
@@ -186,7 +190,14 @@ async function confirmImport(storedRows) {
     const result = await Feedback.insertMany(documents.slice(offset, offset + 1000));
     insertedCount += result.length;
   }
-  return { importBatch, insertedCount, skippedCount: 0, newAnalysisCount };
+  return {
+    importBatch,
+    insertedCount,
+    skippedCount: 0,
+    newAnalysisCount,
+    uniqueTextCount: uniqueRows.size,
+    lowConfidenceCount,
+  };
 }
 
 module.exports = {

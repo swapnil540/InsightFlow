@@ -163,6 +163,7 @@ function neutralFailure(text) {
       issueSummary: normalized.split(/\s+/).filter(Boolean).slice(0, 12).join(' '),
       suggestedAction: 'Monitor feedback for a clearer emerging pattern.',
       producedBy: 'rules', adaptionRunId: null, confidence: 0,
+      notAnalyzed: true,
     },
     confidence: 0, matchedTextHash: null, neighbours: [], fromCache: false, notAnalyzed: true,
   };
@@ -177,13 +178,16 @@ async function analyzeText(text) {
     if (mongoose.connection.readyState === 1) {
       const cached = await Analysis.findOne({ textHash: hash }).lean();
       if (cached) {
-        const source = await Feedback.findOne({ textHash: hash }).select('text').lean().catch(() => null);
+        const matchedHash = cached.matchedTextHash || hash;
+        const source = await Feedback.findOne({ textHash: matchedHash }).select('text').lean().catch(() => null);
         const analysis = cachedAnalysisFields(cached);
         analysis.confidence = 1;
-        analysis.matchedTextHash = hash;
+        analysis.matchedTextHash = matchedHash;
+        const fallbackExample = source?.text ? null : loadAdaptedFile().find((item) => item.textHash === matchedHash);
+        const matchedReview = source?.text || fallbackExample?.review;
         return {
-          analysis, confidence: 1, matchedTextHash: hash,
-          neighbours: source?.text ? [{ textHash: hash, review: source.text, similarity: 1 }] : [],
+          analysis, confidence: 1, matchedTextHash: matchedHash,
+          neighbours: matchedReview ? [{ textHash: matchedHash, review: matchedReview, similarity: 1 }] : [],
           fromCache: true, notAnalyzed: false,
         };
       }

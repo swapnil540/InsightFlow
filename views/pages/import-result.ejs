@@ -7,6 +7,8 @@
       <div class="row g-3 text-start my-4">
         <div class="col-6"><div class="import-stat"><span>Inserted</span><strong><%= insertedCount.toLocaleString() %></strong></div></div>
         <div class="col-6"><div class="import-stat"><span>Skipped</span><strong><%= skippedCount.toLocaleString() %></strong></div></div>
+        <div class="col-6"><div class="import-stat"><span>Unique texts analysed</span><strong><%= uniqueTextCount.toLocaleString() %></strong></div></div>
+        <div class="col-6"><div class="import-stat"><span>Low-confidence texts</span><strong><%= lowConfidenceCount.toLocaleString() %></strong></div></div>
         <div class="col-12"><div class="import-stat"><span>New analyses created</span><strong><%= newAnalysisCount.toLocaleString() %></strong></div></div>
       </div>
       <div class="d-flex flex-column flex-sm-row justify-content-center gap-2">

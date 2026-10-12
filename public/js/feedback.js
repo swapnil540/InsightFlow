@@ -20,6 +20,7 @@
     setText('detailComplaint', data.complaint);
     setText('detailSource', data.source);
     setText('detailProvider', data.provider);
+    setText('detailConfidence', data.confidence);
     setText('detailSummary', data.summary);
     setText('detailAction', data.action);
 
