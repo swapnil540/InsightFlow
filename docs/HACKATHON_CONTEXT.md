@@ -246,8 +246,9 @@ the app's structured labels with its runtime LLM using the same schema.
 
 ## 6. Current phase status and next actions
 
-**Current phase: Phase 4 — runtime analysis. Phase 3 is complete and deployed
-to Render.** The live app was verified on 2026-10-12; its database currently
+**Current phase: Phase 5 — dashboard. Phase 3 is complete and deployed to
+Render; Phase 4 implementation is complete and awaiting live verification.**
+The live app was verified on 2026-10-12; its database currently
 contains 7,014 feedback entries, 332 unique texts, 320 cached analyses, and 3
 Adaption runs. See the Phase 3 completion report below for added test data and
 remaining deployment-check limitations.
@@ -267,6 +268,7 @@ remaining deployment-check limitations.
 | Phase 2 seed data | Complete: deterministic seeded RNG, anchor-based 90-day simulated timestamps, weighted `Review`/`Survey`/`Support` sources, 7,000 feedback rows, 320 cached analyses, and 3 AdaptionRun records. All seeded feedback is marked simulated. |
 | Phase 2 verification | At Phase 2 close, `npm test` passed (5 tests) and the owner ran dry, write, and verify at anchor `2026-10-12T08:00:00Z`: 7,000 feedbacks, 320 analyses, 3 Adaption runs, zero missing analyses/invalid topics/embedded mismatches, and the expected recent trend. Render `/health` was later verified during Phase 3. See `docs/PHASE_2_REPORT.md`. |
 | Phase 3 app shell and feedback management | Complete and pushed. The live app supports feedback search/filtering, grouped/all views, manual entry, CSV preview/import, and safe sample loading. `npm test` passes (16 tests); live `/health` reports 7,014 feedbacks, 320 analyses, and 3 Adaption runs. |
+| Phase 4 runtime analysis | Classifier, leave-one-out evaluation, Mongo cache/API, add-feedback result, and CSV analysis are implemented and locally verified. Live Render verification remains pending; commits are listed in section 13. |
 
 ### Phase 2 simulated sample rules
 
@@ -289,7 +291,62 @@ Full-run estimate response: `estimated_credits_consumed: 4.0`,
 `estimatedMinutes: 14`. The owner explicitly approved the estimate before the
 full run was launched.
 
-## 13. Phase 1 completion report
+## 13. Phase completion reports
+
+### Phase 4 completion report
+
+- **State:** implementation complete in four commits; deployed verification is
+  pending. `npm test` passes 24 tests. `npm run eval:classifier` reports
+  agreement with Adaption labels on 320 held-out examples: sentiment 95.94%
+  (307/320), topic 79.69% (255/320), and complaint 96.88% (310/320). At
+  confidence >= 0.5, agreement is 95.61% (283/296), 81.42% (241/296), and
+  96.62% (286/296), respectively.
+- **Evaluation caveat:** the reviews are highly templated and include
+  near-duplicates, so held-out agreement is optimistic and is not general
+  accuracy. The five most common topic confusions were
+  `product_quality -> product_feature_functionality` (15), the reverse (12),
+  `fraud_counterfeit_or_misrepresentation -> fraud_seller_scamming` (4),
+  `product_setup_usage -> product_feature_functionality` (4), and
+  `product_feature_functionality -> product_reliability_durability` (3).
+- **Files:** `services/similarityClassifier.js` implements plain-JavaScript
+  TF-IDF and weighted nearest-neighbour voting; `services/analysisService.js`
+  loads adapted examples, caches analyses, and provides the rules fallback;
+  `scripts/eval-classifier.js` runs the held-out evaluation;
+  `routes/api.js` exposes the analysis API; `views/pages/feedback-result.ejs`
+  presents manual-entry results; `test/phase4.test.js` covers classifier
+  behavior. Existing feedback, CSV, route, model, and view files were updated.
+- **Routes and UI:** `POST /api/analyze` accepts `{ text }`, validates 1-1,000
+  characters, and allows 30 requests per minute per IP. `POST /feedback`
+  analyzes before saving and displays sentiment, topic, severity, complaint,
+  action, confidence, and the matched example. CSV confirmation analyzes each
+  unique text once and reports low-confidence counts. Feedback rows show
+  producer and confidence. CSV limits remain 5 MB and 10,000 rows.
+- **Contract changes:** producer values now include `similarity` and
+  `llm-runtime`; historic `llm` and `fallback` values remain allowed for
+  compatibility. Optional `analysis.confidence` is in 0..1 and
+  `analysis.matchedTextHash` identifies the nearest labelled review. Embedded
+  feedback also has `analysis.notAnalyzed` for the neutral failure result.
+- **Decisions and known issues:** the Analysis collection stores hashes and
+  labels, but not review text, so the runtime joins Adaption hashes to
+  Feedback text; it uses `data/adapted_analysis.json` when the database is
+  empty or unavailable. Local checks used that file fallback; database writes
+  and live Render add-feedback/import flows still need verification.
+  Similarity confidence is the top cosine score and is not calibrated as a
+  probability. No LLM fallback was added; it remains optional and needs a
+  separate explicit go-ahead.
+- **Verification:** `npm test` passes 24/24. `npm run eval:classifier` prints
+  the metrics above. Local analysis checks covered a negated fraud mention, a
+  seller-not-sending-product complaint, and unanswered support emails. The
+  `/api/analyze` smoke check returned 200 for valid text and 400 for blank
+  text.
+- **Commits:** `841d519` Similarity classifier; `048d8ab` Evaluate similarity
+  classifier; `ac57d7b` Add database-backed runtime analysis; `c3afe73`
+  Runtime analysis in add feedback and CSV import. The Phase 4 documentation
+  and deployment commit is pending.
+- **Exact next step:** verify the deployed `/api/analyze`, add-feedback, and
+  CSV flows on Render, then begin Phase 5 dashboard work.
+
+### Phase 1 completion report
 
 - `data/adapted_analysis.json` and `data/adapted_analysis_report.txt` are built
   from `pipeline/out/adapted_analysis_retest.csv` (320 rows). All issue
@@ -392,8 +449,9 @@ full run was launched.
 - **Phase 3 — app shell/feedback management:** responsive layout, feedback
   table/forms, CSV preview/validation/import, sample data. **Complete and
   deployed; see the Phase 3 completion report.**
-- **Phase 4 — runtime analysis:** hash cache, similar adapted examples,
-  controlled-schema LLM analysis, validation, fallback, producer badge.
+- **Phase 4 — runtime analysis:** implementation complete; similar adapted
+  examples, hash cache, API, feedback/import hooks, failure fallback, producer
+  badge. Optional LLM fallback remains unimplemented.
 - **Phase 5 — dashboard:** aggregated KPIs, sentiment/topic charts, trends,
   consistent shared filters, simulated-date disclosure.
 - **Phase 6 — priorities/recommendations:** explainable score, evidence quotes,
@@ -455,7 +513,7 @@ full run was launched.
   values. Use the same `--anchor <ISO date-time>` value for dry/write/verify.
 - `/health` returns collection counts when connected; counts are `null` if
   the database is disconnected or count queries fail.
-- Current phase: **Phase 4 — runtime analysis**.
+- Current phase: **Phase 5 — dashboard**.
 
 After a phase, commit only reviewed intended files, update the progress log,
 record decisions/contract changes/known issues, and include a concise phase
