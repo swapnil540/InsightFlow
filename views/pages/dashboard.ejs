@@ -1,0 +1,39 @@
+<section class="dashboard-page py-4 py-lg-5" id="dashboard">
+  <div class="container">
+    <div class="dashboard-heading mb-4">
+      <p class="eyebrow mb-2">Customer feedback analytics</p>
+      <h1 class="h2 fw-bold mb-1">Dashboard</h1>
+      <p class="text-secondary mb-0">Demo data: dates and sources are simulated.</p>
+    </div>
+
+    <section class="dashboard-filter-card surface-card mb-4" aria-labelledby="dashboardFiltersTitle">
+      <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+        <h2 class="h6 fw-bold mb-0" id="dashboardFiltersTitle">Filters</h2>
+        <button class="btn btn-sm btn-outline-secondary" type="button" id="dashboardReset">Reset filters</button>
+      </div>
+      <div class="row g-3" id="dashboardFilters">
+        <div class="col-6 col-lg-2"><label class="form-label" for="filterCategory">Category</label><select class="form-select" id="filterCategory" name="category"><option value="">All categories</option><% categories.forEach((value) => { %><option value="<%= value %>"><%= value %></option><% }); %></select></div>
+        <div class="col-6 col-lg-2"><label class="form-label" for="filterSentiment">Sentiment</label><select class="form-select" id="filterSentiment" name="sentiment"><option value="">All sentiments</option><% sentiments.forEach((value) => { %><option value="<%= value %>"><%= value[0].toUpperCase() + value.slice(1) %></option><% }); %></select></div>
+        <div class="col-12 col-lg-3"><label class="form-label" for="filterTopic">Topic</label><select class="form-select" id="filterTopic" name="topic"><option value="">All topics</option><% topicGroups.forEach((group) => { %><optgroup label="<%= group.parentCategory %>"><% group.topics.forEach((topic) => { %><option value="<%= topic.key %>"><%= topic.label %></option><% }); %></optgroup><% }); %></select></div>
+        <div class="col-6 col-lg-2"><label class="form-label" for="filterSource">Source</label><select class="form-select" id="filterSource" name="source"><option value="">All sources</option><% sources.forEach((value) => { %><option value="<%= value %>"><%= value %></option><% }); %></select></div>
+        <div class="col-6 col-lg-3"><label class="form-label" for="datePreset">Date range</label><select class="form-select" id="datePreset" aria-label="Date range preset"><option value="90">Last 90 days</option><option value="30">Last 30 days</option><option value="7">Last 7 days</option><option value="custom">Custom</option></select></div>
+        <div class="col-6 col-lg-2"><label class="form-label" for="filterFrom">From</label><input class="form-control" type="date" id="filterFrom" name="from"></div>
+        <div class="col-6 col-lg-2"><label class="form-label" for="filterTo">To</label><input class="form-control" type="date" id="filterTo" name="to"></div>
+      </div>
+      <div class="dashboard-loading small text-secondary mt-3" id="dashboardLoading" role="status" aria-live="polite" hidden><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Updating dashboard…</div>
+      <div class="alert alert-danger mt-3 mb-0" id="dashboardError" role="alert" hidden><span id="dashboardErrorMessage">Unable to load analytics.</span> <button class="btn btn-sm btn-outline-danger ms-2" id="dashboardRetry" type="button">Retry</button></div>
+    </section>
+
+    <div class="alert alert-info py-2" id="unanalysedNote" role="status" hidden></div>
+    <section aria-labelledby="dashboardMetricsTitle">
+      <h2 class="h5 fw-bold mb-3" id="dashboardMetricsTitle">Key metrics</h2>
+      <div class="row g-3" id="dashboardKpis" aria-live="polite">
+        <% const cards = [ ['totalMentions', 'Total feedback', 'Mentions'], ['uniquePhrasings', 'Unique phrasings', 'Distinct texts'], ['complaints', 'Complaints', 'Count and share'], ['negativeShare', 'Negative share', 'Of analysed feedback'], ['averageScore', 'Average sentiment score', 'Scale: −1 to +1'], ['topIssue', 'Top issue', 'Complaint mentions'] ]; cards.forEach(([key, title, hint]) => { %>
+          <div class="col-12 col-sm-6 col-xl-4"><article class="surface-card dashboard-kpi h-100" aria-labelledby="kpi-title-<%= key %>"><div class="dashboard-skeleton" aria-hidden="true"><span></span><span></span></div><div class="dashboard-kpi-content" hidden><p class="small text-secondary mb-2" id="kpi-title-<%= key %>"><%= title %></p><p class="dashboard-kpi-value mb-1" data-value="<%= key %>">—</p><p class="small text-secondary mb-0" data-hint="<%= key %>"><%= hint %></p><p class="small mb-0 mt-2" data-delta="<%= key %>" hidden></p></div></article></div>
+        <% }); %>
+      </div>
+      <div class="dashboard-empty surface-card text-center p-4 mt-3" id="dashboardEmpty" hidden><strong>No feedback matches these filters</strong><p class="small text-secondary mb-2">Try a wider date range or reset the filters.</p><button class="btn btn-sm btn-outline-primary" type="button" data-dashboard-reset>Reset filters</button></div>
+    </section>
+  </div>
+</section>
+<script src="/js/dashboard.js" defer></script>

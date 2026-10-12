@@ -260,8 +260,18 @@ router.post('/import/confirm', async (req, res) => {
   });
 });
 
+router.get('/dashboard', (req, res) => {
+  res.render('pages/dashboard', {
+    pageTitle: 'Dashboard',
+    activeNav: 'dashboard',
+    categories: CATEGORY_VALUES,
+    sentiments: SENTIMENT_VALUES,
+    sources: SOURCE_VALUES,
+    topicGroups: TOPIC_GROUPS,
+  });
+});
+
 const placeholders = [
-  { path: '/dashboard', key: 'dashboard', title: 'Dashboard', phase: 'Planned for Phase 5', icon: 'bar-chart-line', description: 'A filterable overview of feedback volume, sentiment, topics, and trends will appear here.' },
   { path: '/insights', key: 'insights', title: 'Insights', phase: 'Planned for Phase 6', icon: 'lightbulb', description: 'Prioritized customer issues, supporting evidence, and actionable recommendations will appear here.' },
   { path: '/issues', key: 'issues', title: 'Issues', phase: 'Planned for Phase 7', icon: 'kanban', description: 'Track issue status, ownership, and team notes here.' },
   { path: '/reports', key: 'reports', title: 'Reports', phase: 'Planned for Phase 7', icon: 'file-earmark-bar-graph', description: 'Create and share reports built from feedback and issue snapshots here.' },
