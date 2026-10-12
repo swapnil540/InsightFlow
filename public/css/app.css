@@ -109,6 +109,11 @@ a:hover { color: var(--if-brand-dark); }
 .dashboard-chart-state { display: grid; min-height: 17rem; place-items: center; text-align: center; }
 .dashboard-chart-wrap-tall + .dashboard-chart-state { min-height: 23rem; }
 .dashboard-chart-card canvas[hidden] { display: none; }
+.rising-issues-list { display: grid; gap: .75rem; padding-left: 1.5rem; }
+.rising-issues-list li { padding: .75rem .25rem .75rem 0; border-bottom: 1px solid var(--if-border); }
+.rising-issues-list li:last-child { border-bottom: 0; }
+.rising-issue-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .5rem; }
+.rising-issue-growth { color: #b33f32; font-weight: 700; white-space: nowrap; }
 @keyframes dashboard-shimmer { to { background-position: -200% 0; } }
 .empty-state { color: var(--if-muted); }
 .pagination { --bs-pagination-color: var(--if-brand); --bs-pagination-active-bg: var(--if-brand); --bs-pagination-active-border-color: var(--if-brand); }

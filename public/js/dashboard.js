@@ -11,6 +11,7 @@
   let requestId = 0;
   let topicRequestId = 0;
   let trendRequestId = 0;
+  let topicTrendRequestId = 0;
   let debounceTimer;
   let statsData = null;
   let topicData = [];
@@ -20,6 +21,7 @@
   let trendMetric = 'total';
   const charts = {};
   const sentimentColors = { positive: '#159a83', mixed: '#d99a24', neutral: '#77869a', negative: '#d85645' };
+  const topicColors = ['#5275d2', '#dc8e36', '#8059b5'];
   const sentimentLabels = ['positive', 'neutral', 'mixed', 'negative'];
 
   function chartState(name, message = '') {
@@ -151,9 +153,107 @@
       });
   }
 
+  function renderRisingIssues(topics) {
+    const list = document.getElementById('risingIssuesList');
+    const state = document.getElementById('risingIssuesState');
+    const rising = topics
+      .filter((topic) => Number(topic.mentionsPrev14d) >= 20 && Number.isFinite(Number(topic.trendPct)) && Number(topic.trendPct) > 0)
+      .sort((a, b) => Number(b.trendPct) - Number(a.trendPct) || b.mentions - a.mentions)
+      .slice(0, 3);
+    list.replaceChildren();
+    if (!rising.length) {
+      list.hidden = true;
+      state.hidden = false;
+      state.textContent = 'No rising issues meet the minimum volume threshold for these filters.';
+      return;
+    }
+
+    const filters = new URLSearchParams(queryString(readFilters()));
+    rising.forEach((topic) => {
+      const item = document.createElement('li');
+      const heading = document.createElement('div');
+      heading.className = 'rising-issue-heading';
+      const label = document.createElement('strong');
+      label.textContent = topic.label;
+      const growth = document.createElement('span');
+      growth.className = 'rising-issue-growth';
+      growth.textContent = `↑ ${Number(topic.trendPct).toFixed(1)}%`;
+      heading.append(label, growth);
+      const details = document.createElement('p');
+      details.className = 'small text-secondary my-1';
+      details.textContent = `${formatNumber(topic.mentionsLast14d)} mentions in the last 14 days; ${formatNumber(topic.mentionsPrev14d)} in the 14 days before.`;
+      const link = document.createElement('a');
+      filters.set('topic', topic.key);
+      filters.set('sentiment', 'negative');
+      link.href = `/feedback?${filters.toString()}`;
+      link.textContent = 'View negative feedback';
+      item.append(heading, details, link);
+      list.append(item);
+    });
+    state.hidden = true;
+    list.hidden = false;
+  }
+
+  function renderTopicTrend(data) {
+    const buckets = data.buckets || [];
+    const topics = data.topics || [];
+    if (!topics.length || !buckets.length) return chartState('topicTrend', 'No complaint topics are available for this date range.');
+    const datasets = topics.map((topic, index) => ({
+      label: topic.label,
+      data: buckets.map((bucket) => Number(bucket.topics?.[topic.key] || 0)),
+      borderColor: topicColors[index % topicColors.length],
+      backgroundColor: topicColors[index % topicColors.length],
+      borderWidth: 2,
+      pointRadius: buckets.length > 45 ? 0 : 2,
+      pointHoverRadius: 5,
+      tension: 0.25,
+      fill: false,
+    }));
+    const total = datasets.reduce((sum, dataset) => sum + dataset.data.reduce((part, count) => part + count, 0), 0);
+    if (!total) return chartState('topicTrend', 'No complaint topic mentions match these filters.');
+    replaceChart('topicTrend', {
+      type: 'line',
+      data: { labels: buckets.map((bucket) => bucket.date), datasets },
+      options: {
+        ...chartOptions(),
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          x: { ticks: { maxTicksLimit: 8, maxRotation: 0 }, grid: { display: false } },
+          y: { beginAtZero: true, ticks: { precision: 0 } },
+        },
+      },
+    }, `Complaint topic mentions per ${data.granularity}: ${datasets.map((dataset) => `${dataset.label}, ${formatNumber(dataset.data.reduce((sum, count) => sum + count, 0))} in total`).join('; ')}.`);
+  }
+
+  function loadTopicTrend(query, id, topics) {
+    const topicTrendId = ++topicTrendRequestId;
+    const selected = topics.slice().sort((a, b) => b.mentions - a.mentions || a.key.localeCompare(b.key)).slice(0, 3);
+    if (!selected.length) {
+      chartState('topicTrend', 'No complaint topics match these filters.');
+      return Promise.resolve();
+    }
+    chartState('topicTrend', 'Loading complaint topic trend…');
+    const params = new URLSearchParams(query);
+    params.set('granularity', trendGranularity);
+    params.set('topics', selected.map((topic) => topic.key).join(','));
+    return fetch(`/api/trends?${params.toString()}`, { headers: { Accept: 'application/json' } })
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || 'Unable to load complaint topic trends.');
+        if (id !== requestId || topicTrendId !== topicTrendRequestId) return;
+        renderTopicTrend(payload);
+      })
+      .catch((error) => {
+        if (id === requestId && topicTrendId === topicTrendRequestId) chartState('topicTrend', `${error.message || 'Unable to load complaint topic trends.'} Retry by changing a filter.`);
+      });
+  }
+
   function loadTopics(query, id) {
     const topicId = ++topicRequestId;
     chartState('issues', 'Loading complaint issues…');
+    document.getElementById('risingIssuesList').hidden = true;
+    document.getElementById('risingIssuesState').hidden = false;
+    document.getElementById('risingIssuesState').textContent = 'Loading rising issues…';
     return fetch(`/api/topics${query ? `?${query}` : ''}`, { headers: { Accept: 'application/json' } })
       .then(async (response) => {
         const payload = await response.json();
@@ -161,9 +261,15 @@
         if (id !== requestId || topicId !== topicRequestId) return;
         topicData = payload;
         renderIssues(topicData);
+        renderRisingIssues(topicData);
+        return loadTopicTrend(query, id, topicData);
       })
       .catch((error) => {
-        if (id === requestId && topicId === topicRequestId) chartState('issues', `${error.message || 'Unable to load complaint issues.'} Retry by changing a filter.`);
+        if (id === requestId && topicId === topicRequestId) {
+          chartState('issues', `${error.message || 'Unable to load complaint issues.'} Retry by changing a filter.`);
+          document.getElementById('risingIssuesState').textContent = 'Unable to load rising issues.';
+          chartState('topicTrend', 'Unable to load complaint topic trends.');
+        }
       });
   }
 
@@ -329,6 +435,7 @@
       item.setAttribute('aria-pressed', String(selected));
     });
     loadTrend(queryString(readFilters()), requestId);
+    loadTopicTrend(queryString(readFilters()), requestId, topicData);
   }));
   document.querySelectorAll('[data-trend-metric]').forEach((button) => button.addEventListener('click', () => {
     trendMetric = button.dataset.trendMetric;

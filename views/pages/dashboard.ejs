@@ -71,6 +71,19 @@
           <p class="visually-hidden" id="trendChartSummary"></p>
           <div class="dashboard-chart-state small text-secondary" id="trendChartState" role="status" hidden></div>
         </article></div>
+        <div class="col-12 col-lg-5"><article class="surface-card dashboard-chart-card h-100" aria-labelledby="risingIssuesTitle">
+          <h3 class="h6 fw-bold mb-1" id="risingIssuesTitle">Rising issues</h3>
+          <p class="small text-secondary">Fastest-growing complaint topics with at least 20 mentions in the previous 14 days.</p>
+          <p class="dashboard-chart-state small text-secondary" id="risingIssuesState" role="status">Loading rising issues…</p>
+          <ol class="rising-issues-list mb-0" id="risingIssuesList" hidden></ol>
+        </article></div>
+        <div class="col-12 col-lg-7"><article class="surface-card dashboard-chart-card h-100" aria-labelledby="topicTrendTitle">
+          <h3 class="h6 fw-bold mb-1" id="topicTrendTitle">Top complaint topics over time</h3>
+          <p class="small text-secondary">Compare the three most-mentioned complaint topics.</p>
+          <div class="dashboard-chart-wrap"><canvas id="topicTrendChart" aria-label="Line chart of the top three complaint topics over time" role="img"></canvas></div>
+          <p class="visually-hidden" id="topicTrendChartSummary"></p>
+          <div class="dashboard-chart-state small text-secondary" id="topicTrendChartState" role="status" hidden></div>
+        </article></div>
       </div>
     </section>
   </div>
