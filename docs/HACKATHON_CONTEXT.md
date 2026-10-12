@@ -246,11 +246,11 @@ the app's structured labels with its runtime LLM using the same schema.
 
 ## 6. Current phase status and next actions
 
-**Current phase: Phase 3 — app shell and feedback management. Phase 0 is
-reported complete by the owner. Phase 2 implementation and database counts are
-complete; the deployed Render `/health` count check is pending.** See
-[`PHASE_2_REPORT.md`](PHASE_2_REPORT.md) for the implementation and validation
-record.
+**Current phase: Phase 4 — runtime analysis. Phase 3 is complete and deployed
+to Render.** The live app was verified on 2026-10-12; its database currently
+contains 7,014 feedback entries, 332 unique texts, 320 cached analyses, and 3
+Adaption runs. See the Phase 3 completion report below for added test data and
+remaining deployment-check limitations.
 
 | Work | State |
 |---|---|
@@ -265,7 +265,8 @@ record.
 | B9 docs/handoff | Complete. Initial-run evaluation and both run IDs are recorded; Phase 1 changes are committed and pushed. |
 | Phase 2 models | Complete: `models/feedback.js`, `models/analysis.js`, `models/issue.js`, `models/report.js`, and `models/adaptionRun.js`. Feedback hash is non-unique; analysis hash is unique. Feedback filter, lookup, and text-search indexes are declared. |
 | Phase 2 seed data | Complete: deterministic seeded RNG, anchor-based 90-day simulated timestamps, weighted `Review`/`Survey`/`Support` sources, 7,000 feedback rows, 320 cached analyses, and 3 AdaptionRun records. All seeded feedback is marked simulated. |
-| Phase 2 verification | `npm test` passed (5 tests). Owner ran dry, write, and verify at anchor `2026-10-12T08:00:00Z`: 7,000 feedbacks, 320 analyses, 3 Adaption runs, zero missing analyses/invalid topics/embedded mismatches, and the expected recent trend. `/health` counts are implemented; live Render verification is pending. See `docs/PHASE_2_REPORT.md`. |
+| Phase 2 verification | At Phase 2 close, `npm test` passed (5 tests) and the owner ran dry, write, and verify at anchor `2026-10-12T08:00:00Z`: 7,000 feedbacks, 320 analyses, 3 Adaption runs, zero missing analyses/invalid topics/embedded mismatches, and the expected recent trend. Render `/health` was later verified during Phase 3. See `docs/PHASE_2_REPORT.md`. |
+| Phase 3 app shell and feedback management | Complete and pushed. The live app supports feedback search/filtering, grouped/all views, manual entry, CSV preview/import, and safe sample loading. `npm test` passes (16 tests); live `/health` reports 7,014 feedbacks, 320 analyses, and 3 Adaption runs. |
 
 ### Phase 2 simulated sample rules
 
@@ -306,6 +307,44 @@ full run was launched.
   `dataset-456aec4e-901a-4825-91b1-60b1a936e52f-1791779272014`.
 - Phase 1 was committed as `Phase 1 complete` and pushed to `origin`.
 
+### Phase 3 completion report
+
+- **State:** complete, committed, and pushed to `origin/main`. Phase commits:
+  `b072aae` app shell; `b6c38ee` 404/500 locals fix; `1ceb35a` shared
+  filters; `aeedb50` feedback list; `96b8042` rules analysis; `79caceb` manual
+  feedback; `9a63ec3` CSV import; `aadba10` repeatable sample loader and home
+  metrics; `3b588b5` sample success render fix; `36f684b` simulated-date label
+  fix.
+- **Decisions:** keep the Phase 4 analysis boundary stable at
+  `analyzeText(text, { category })`; rules outputs are embedded on feedback
+  without entering the analysis cache. Store CSV previews in process memory
+  with a 15-minute expiry. Use fixed sample anchor `2026-10-12T08:00:00Z` and
+  skip all writes when the 7,000 seeded rows are already present.
+- **Live verification:** Render `/health` returned connected with 7,014
+  feedbacks, 320 analyses, and 3 Adaption runs. The app was checked for home,
+  valid multi-filter results, grouped/all views, detail modal, add-feedback
+  negation handling, import preview and confirmation, import-batch filtering,
+  and sample-loader idempotency. The live test added one manual feedback entry
+  and imported 13 valid fixture rows (4 skipped; 11 new analyses), giving 332
+  unique texts. The sample import batch is
+  `imp-20261012-1040-23d3`. A brief 502 occurred while Render restarted after a
+  push; the app recovered. The feedback and import pages were visually checked
+  at a narrow 699 px browser width, where navigation collapsed and content
+  stacked without visible horizontal overflow. Render deployment logs were
+  not available in this session.
+- **Verification:** `npm test` passes all 16 Phase 2/3 tests. `node
+  scripts/seed.js` retains its dry-run output and summary. Render `/health`
+  confirmed database connectivity; local Atlas connectivity was unavailable
+  during implementation, so database writes were validated on the live app.
+- **Known limits:** CSV preview state is in memory and can expire on restart;
+  Render logs were not inspected; responsive visual check used the available
+  699 px viewport rather than a 390 px emulated phone viewport. The manually
+  added negation test and sample CSV rows remain in the live database as
+  requested for deployment testing.
+- **Exact next step:** begin Phase 4 runtime analysis, replacing the rules-only
+  fallback with the approved runtime analysis provider while preserving the
+  `analyzeText(text, { category })` interface and cache behavior.
+
 ### Phase 2 fix-up completion report
 
 - **Anchor used for the verified seed:** `2026-10-12T08:00:00Z`.
@@ -324,9 +363,10 @@ full run was launched.
   references. The weekly complaint report shows counts rising to 395, 460, and
   458 in the final complete/later weeks, against earlier weekly counts mostly
   around 232–273.
-- `/health` now returns `counts: { feedbacks, analyses, adaptionRuns }` when
-  MongoDB is available and null counts when it is unavailable. The route code
-  is implemented; the live Render endpoint has not yet been checked.
+- `/health` returns `counts: { feedbacks, analyses, adaptionRuns }` when
+  MongoDB is available and null counts when it is unavailable. Its live Render
+  response was verified during Phase 3; current counts are in the Phase 3
+  completion report.
 - Decisions and limitations: generated timestamps and source values remain
   explicitly simulated; actual Adaption credit spend is unavailable; the
   labels retest has no evaluation of its own. Four full-run component quality
@@ -335,8 +375,8 @@ full run was launched.
 - Step commits: `7c92b0f` realistic simulated dates/sources; `c112409` Issue,
   Report, and AdaptionRun models/indexes; `a4c2264` three AdaptionRun seeds;
   `5ad0a56` verification reporting; `1125eb4` `/health` counts.
-- **Exact next step:** check the deployed Render `/health` endpoint after the
-  push/redeploy, then continue Phase 3 app shell and feedback management.
+- **Next step at Phase 2 close:** check deployed Render `/health`, then begin
+  Phase 3. Both actions were completed; see the Phase 3 completion report.
 
 ## 7. Phase roadmap and handoff
 
@@ -350,7 +390,8 @@ full run was launched.
   `models/report.js`, and `models/adaptionRun.js`. Seed 7,000 feedbacks, 320
   unique analyses, and 3 Adaption runs with deterministic simulated values.
 - **Phase 3 — app shell/feedback management:** responsive layout, feedback
-  table/forms, CSV preview/validation/import, sample data.
+  table/forms, CSV preview/validation/import, sample data. **Complete and
+  deployed; see the Phase 3 completion report.**
 - **Phase 4 — runtime analysis:** hash cache, similar adapted examples,
   controlled-schema LLM analysis, validation, fallback, producer badge.
 - **Phase 5 — dashboard:** aggregated KPIs, sentiment/topic charts, trends,
@@ -363,6 +404,40 @@ full run was launched.
   accessibility, mobile and failure-state polish.
 - **Phase 9 — deploy/submission:** production seed/env check, responsive test,
   README, demo, truthful Adaption write-up, submit early.
+
+### Phase 3 files, routes, and contracts
+
+- `services/filters.js` parses whitelisted shared query filters and builds
+  Mongo filters; `services/feedbackService.js` queries, groups, pages, and
+  creates feedback; `services/analysisService.js` exposes
+  `async analyzeText(text, { category })` with cache lookup and a rules-based
+  fallback; `services/csvImportService.js` parses/previews CSV and confirms
+  imports; `services/importStore.js` holds expiring in-memory previews;
+  `services/sampleLoader.js` owns seed CLI logic and the safe sample loader.
+- `data/sample_import_test.csv` is the import verification fixture;
+  `test/phase3.test.js` covers the analysis and import contracts.
+- `views/layout.ejs` and `public/css/app.css` provide the responsive Bootstrap
+  shell; shared partials are `views/partials/navbar.ejs`, `footer.ejs`,
+  `notice.ejs`, `sentiment-badge.ejs`, `source-chip.ejs`, `severity-dots.ejs`,
+  `empty-state.ejs`, and `pagination.ejs`.
+- `views/pages/home.ejs`, `feedback.ejs`, `feedback-new.ejs`, `import.ejs`,
+  `import-preview.ejs`, `import-result.ejs`, `placeholder.ejs`, `404.ejs`, and
+  `error.ejs` implement the Phase 3 screens; `public/js/feedback.js` and
+  `feedback-form.js` support the detail modal and live form counter.
+- Routes: `GET /`, `GET /feedback`, `GET /feedback/new`, `POST /feedback`,
+  `GET /import`, `GET /import/template.csv`, `POST /import/preview`,
+  `POST /import/confirm`, and `POST /import/sample`. The five planned pages
+  remain friendly placeholders.
+- Shared query parameters: `category`, `sentiment`, `topic`, `source`, `from`,
+  `to`, `q`, `complaint`, `batch`, `view`, `sort`, `page`, and `limit`.
+- `Feedback.importBatch` is optional and indexed. `seedKey` uses the unique
+  sparse `seed_row_idempotency` index so app/import rows can omit it.
+- The analysis service keeps `analyzeText(text, { category })` stable and
+  returns `{ analysis, fromCache }`; rules-based results are embedded on the
+  feedback document but do not enter the analyses cache.
+- CSV previews live in process memory for 15 minutes. The sample loader uses
+  fixed anchor `2026-10-12T08:00:00Z`; if the seed count is 7,000 it makes no
+  writes and reports 7,000 entries and 320 unique texts.
 
 ### Phase 2 run and verification
 
@@ -380,7 +455,7 @@ full run was launched.
   values. Use the same `--anchor <ISO date-time>` value for dry/write/verify.
 - `/health` returns collection counts when connected; counts are `null` if
   the database is disconnected or count queries fail.
-- Next phase: **Phase 3 — app shell and feedback management**.
+- Current phase: **Phase 4 — runtime analysis**.
 
 After a phase, commit only reviewed intended files, update the progress log,
 record decisions/contract changes/known issues, and include a concise phase
