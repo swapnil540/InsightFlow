@@ -1,5 +1,6 @@
 const express = require('express');
 const { analyzeText } = require('../services/analysisService');
+const { getStats, getTopics, getTrends } = require('../services/statsService');
 
 const router = express.Router();
 const RATE_WINDOW_MS = 60 * 1000;
@@ -32,6 +33,36 @@ router.post('/analyze', async (req, res) => {
     lowConfidence: result.confidence < 0.5,
     notAnalyzed: result.notAnalyzed,
   });
+});
+
+function sendAnalyticsError(res, error) {
+  const status = Number.isInteger(error.status) ? error.status : 500;
+  const message = status === 400 ? error.message : 'Unable to load analytics.';
+  return res.status(status).json({ error: message });
+}
+
+router.get('/stats', async (req, res) => {
+  try {
+    res.json(await getStats(req.query));
+  } catch (error) {
+    sendAnalyticsError(res, error);
+  }
+});
+
+router.get('/topics', async (req, res) => {
+  try {
+    res.json(await getTopics(req.query));
+  } catch (error) {
+    sendAnalyticsError(res, error);
+  }
+});
+
+router.get('/trends', async (req, res) => {
+  try {
+    res.json(await getTrends(req.query));
+  } catch (error) {
+    sendAnalyticsError(res, error);
+  }
 });
 
 module.exports = router;
