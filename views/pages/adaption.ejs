@@ -1,0 +1,334 @@
+<div class="container py-4">
+  <!-- Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4 pb-2 border-bottom">
+    <div>
+      <span class="eyebrow d-block mb-1">Architecture & Model Governance</span>
+      <h1 class="h2 fw-bold text-dark mb-1">Adaption Pipeline & Evaluation</h1>
+      <p class="text-secondary mb-0">How Adaption Adaptive Data powers automated feedback classification and decision intelligence.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <span class="badge bg-white text-dark border px-3 py-2 shadow-sm">
+        <i class="bi bi-database me-1 text-primary"></i> <strong><%= (feedbackCount || 7000).toLocaleString() %></strong> Feedbacks
+      </span>
+      <span class="badge bg-white text-dark border px-3 py-2 shadow-sm">
+        <i class="bi bi-cpu me-1 text-primary"></i> <strong><%= (analysisCount || 320).toLocaleString() %></strong> Unique Analyses
+      </span>
+      <% if (producerDistribution && producerDistribution.length) { %>
+        <% producerDistribution.forEach(p => { %>
+          <span class="badge bg-light text-secondary border px-2 py-2" title="Analysis producer: <%= p._id %>">
+            <span class="text-dark fw-bold"><%= p._id %>:</span> <%= p.count.toLocaleString() %>
+          </span>
+        <% }); %>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Section 1: The Problem -->
+  <section class="mb-5">
+    <div class="surface-card p-4">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="brand-mark-small"><i class="bi bi-exclamation-octagon-fill"></i></span>
+        <h2 class="h5 fw-bold mb-0">1. The Problem</h2>
+      </div>
+      <p class="text-secondary mb-3">
+        The raw dataset provided for Build Battle 2026 contains <strong>7,000 feedback rows</strong>, but inspecting the normalized text reveals only <strong>320 unique reviews</strong> (approximately <strong>95% exact duplicates</strong>). Furthermore, the raw data provides:
+      </p>
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <div class="p-3 bg-light rounded-3 border h-100">
+            <div class="fw-bold text-dark mb-1"><i class="bi bi-x-circle text-danger me-1"></i> No Sentiment or Severity</div>
+            <p class="text-secondary small mb-0">Zero sentiment polarity scores, severity ratings, or complaint flags existed in the source dataset.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-3 bg-light rounded-3 border h-100">
+            <div class="fw-bold text-dark mb-1"><i class="bi bi-x-circle text-danger me-1"></i> Coarse Non-Sentiment Categories</div>
+            <p class="text-secondary small mb-0">Source categories (e.g., "Fraud and Scam") are organizational topics, not sentiment indicators.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-3 bg-light rounded-3 border h-100">
+            <div class="fw-bold text-dark mb-1"><i class="bi bi-slash-circle text-warning me-1"></i> False Alarm Negations</div>
+            <p class="text-secondary small mb-0">Sentences like <em>"I was not a victim of fraud"</em> sat in "Fraud and Scam" despite expressing positive relief.</p>
+          </div>
+        </div>
+      </div>
+      <p class="text-secondary small mb-0">
+        Sending 7,000 raw rows directly to runtime LLMs would waste 95% of token spend on redundant completions. The workflow required clean deduplication, rigorous taxonomy classification, and high-fidelity structured analysis.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 2: Pipeline -->
+  <section class="mb-5">
+    <div class="surface-card p-4">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="brand-mark-small"><i class="bi bi-diagram-3-fill"></i></span>
+        <h2 class="h5 fw-bold mb-0">2. Data Pipeline Architecture</h2>
+      </div>
+      <p class="text-secondary mb-3">
+        InsightFlow uses a clean, cost-efficient pipeline connecting raw inputs, Adaption Adaptive Data recipes, and operational application features.
+      </p>
+
+      <div class="pipeline-flow mb-3">
+        <div class="pipeline-step">
+          <span class="step-badge">Step 1</span>
+          <h6>Raw Feedback</h6>
+          <p><strong><%= (feedbackCount || 7000).toLocaleString() %></strong> customer rows with 4 coarse categories.</p>
+        </div>
+
+        <div class="pipeline-arrow"><i class="bi bi-arrow-right"></i></div>
+
+        <div class="pipeline-step">
+          <span class="step-badge">Step 2</span>
+          <h6>Deduplicate</h6>
+          <p>SHA-1 text normalization isolates <strong>320 unique</strong> phrasings (95% reduction).</p>
+        </div>
+
+        <div class="pipeline-arrow"><i class="bi bi-arrow-right"></i></div>
+
+        <div class="pipeline-step">
+          <span class="step-badge">Step 3</span>
+          <h6>Adaption Adaptive Data</h6>
+          <p>Universal prompt + Blueprint with JSON recipe and brand constraints.</p>
+        </div>
+
+        <div class="pipeline-arrow"><i class="bi bi-arrow-right"></i></div>
+
+        <div class="pipeline-step">
+          <span class="step-badge">Step 4</span>
+          <h6>Structured Analyses</h6>
+          <p><strong>320 validated</strong> JSON records (sentiment, 16 topics, severity, complaint, 8-12 word summary, action).</p>
+        </div>
+
+        <div class="pipeline-arrow"><i class="bi bi-arrow-right"></i></div>
+
+        <div class="pipeline-step">
+          <span class="step-badge">Step 5</span>
+          <h6>Joined to All Rows</h6>
+          <p>Analyzed labels mapped back to all <strong><%= (feedbackCount || 7000).toLocaleString() %></strong> feedback entries.</p>
+        </div>
+
+        <div class="pipeline-arrow"><i class="bi bi-arrow-right"></i></div>
+
+        <div class="pipeline-step">
+          <span class="step-badge">Step 6</span>
+          <h6>Application Intelligence</h6>
+          <p>Powers Dashboard, Priority Rankings, Recommendations & Reports.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 3: Results -->
+  <section class="mb-5">
+    <div class="surface-card p-4">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="brand-mark-small"><i class="bi bi-award-fill"></i></span>
+        <h2 class="h5 fw-bold mb-0">3. Adaption Run Results & Evaluation</h2>
+      </div>
+      <p class="text-secondary mb-4">
+        Tracked run outputs from Adaption's platform stored in the <code>adaptionruns</code> database collection.
+      </p>
+
+      <% if (adaptionRuns && adaptionRuns.length > 0) { %>
+        <div class="row g-4 mb-4">
+          <% adaptionRuns.forEach((run) => { %>
+            <div class="col-lg-4">
+              <div class="card h-100 border shadow-sm">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                  <span class="badge <%= run.role === 'evaluation' ? 'bg-primary' : (run.role === 'labels' ? 'bg-success' : 'bg-secondary') %> text-uppercase">
+                    <%= run.role %>
+                  </span>
+                  <span class="badge bg-light text-dark border">Status: <%= run.status %></span>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <div class="text-muted small">Dataset ID:</div>
+                    <code class="text-truncate d-block" title="<%= run.datasetId %>" style="max-width: 100%;">
+                      <%= run.datasetId ? (run.datasetId.length > 18 ? run.datasetId.slice(0, 18) + '...' : run.datasetId) : 'N/A' %>
+                    </code>
+                  </div>
+                  <div class="mb-3">
+                    <div class="text-muted small">Run ID:</div>
+                    <code class="text-truncate d-block" title="<%= run.runId %>" style="max-width: 100%;">
+                      <%= run.runId ? (run.runId.length > 24 ? run.runId.slice(0, 24) + '...' : run.runId) : 'N/A' %>
+                    </code>
+                  </div>
+
+                  <hr class="my-2 border-light">
+
+                  <div class="d-flex justify-content-between py-1">
+                    <span class="text-secondary small">Rows In / Out:</span>
+                    <strong class="small text-dark"><%= run.rowsIn != null ? run.rowsIn.toLocaleString() : 'N/A' %> / <%= run.rowsOut != null ? run.rowsOut.toLocaleString() : 'N/A' %></strong>
+                  </div>
+
+                  <div class="d-flex justify-content-between py-1">
+                    <span class="text-secondary small">Quality Score:</span>
+                    <strong class="small text-dark">
+                      <% if (run.scoreBefore != null && run.scoreAfter != null) { %>
+                        <%= run.scoreBefore.toFixed(1) %> &rarr; <span class="text-success fw-bold"><%= run.scoreAfter.toFixed(1) %></span>
+                      <% } else { %>
+                        <span class="text-muted">N/A</span>
+                      <% } %>
+                    </strong>
+                  </div>
+
+                  <div class="d-flex justify-content-between py-1">
+                    <span class="text-secondary small">Letter Grade:</span>
+                    <strong class="small text-dark">
+                      <% if (run.gradeBefore && run.gradeAfter) { %>
+                        <%= run.gradeBefore %> &rarr; <span class="badge bg-success-subtle text-success border border-success-subtle"><%= run.gradeAfter %></span>
+                      <% } else { %>
+                        <span class="text-muted">N/A</span>
+                      <% } %>
+                    </strong>
+                  </div>
+
+                  <div class="d-flex justify-content-between py-1">
+                    <span class="text-secondary small">Percentile:</span>
+                    <strong class="small text-dark">
+                      <%= run.percentile != null ? run.percentile + 'th' : 'N/A' %>
+                    </strong>
+                  </div>
+
+                  <div class="d-flex justify-content-between py-1">
+                    <span class="text-secondary small">Improvement:</span>
+                    <strong class="small text-dark">
+                      <%= run.improvementPercent != null ? '+' + run.improvementPercent + '%' : 'N/A' %>
+                    </strong>
+                  </div>
+
+                  <div class="d-flex justify-content-between py-1">
+                    <span class="text-secondary small">Evaluated Sample:</span>
+                    <strong class="small text-dark">
+                      <%= run.evaluatedOnRows != null ? run.evaluatedOnRows + ' rows' : 'N/A' %>
+                    </strong>
+                  </div>
+
+                  <% if (run.notes) { %>
+                    <div class="mt-3 p-2 bg-light rounded border small text-secondary">
+                      <strong class="d-block text-dark mb-1">Run note:</strong>
+                      <%= run.notes %>
+                    </div>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      <% } else { %>
+        <div class="alert alert-info mb-4">
+          <i class="bi bi-info-circle me-1"></i> Adaption runs are currently empty or loading. Run seed data to populate historical runs.
+        </div>
+      <% } %>
+
+      <!-- Evaluation note callout -->
+      <div class="p-3 bg-light rounded-3 border-start border-primary border-4">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <i class="bi bi-info-circle-fill text-primary"></i>
+          <span class="fw-bold text-dark">Honest Evaluation Finding</span>
+        </div>
+        <p class="text-secondary small mb-0">
+          The evaluation run reveals an important empirical insight: <em>The source file had no completions, so most of the quality gain comes from Adaption generating the missing completions; prompt quality was essentially unchanged (Message Quality: 9.16 &rarr; 9.11; Completion Quality: 0.97 &rarr; 9.87).</em>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 4: What We Configured -->
+  <section class="mb-5">
+    <div class="surface-card p-4">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="brand-mark-small"><i class="bi bi-sliders"></i></span>
+        <h2 class="h5 fw-bold mb-0">4. What We Configured & Iterated</h2>
+      </div>
+
+      <div class="row g-4 mb-4">
+        <div class="col-md-6">
+          <h3 class="h6 fw-bold text-dark mb-2">Recipe Configuration</h3>
+          <ul class="list-group list-group-flush border rounded-3 small">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span><strong>Deduplication:</strong> Enabled</span>
+              <span class="badge bg-success-subtle text-success">Active</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span><strong>Prompt Rephrasing:</strong> Disabled (keeps verbatim text intact)</span>
+              <span class="badge bg-secondary-subtle text-secondary">Off</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span><strong>Blueprint Format:</strong> Valid single JSON object only</span>
+              <span class="badge bg-primary-subtle text-primary">Strict JSON</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span><strong>Taxonomy:</strong> 16 controlled topic keys across 4 parent domains</span>
+              <span class="badge bg-info-subtle text-info">16 Topics</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span><strong>Negation Guardrail:</strong> False alarm protection for fraud phrases</span>
+              <span class="badge bg-success-subtle text-success">Verified</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="col-md-6">
+          <h3 class="h6 fw-bold text-dark mb-2">Iteration & Quality Gate</h3>
+          <div class="p-3 bg-light rounded-3 border h-100">
+            <p class="text-secondary small mb-2">
+              <strong>Prompt Tightening:</strong> In the initial full run, issue summaries adhered to the strict 8 to 12 words constraint in only <strong>34%</strong> of rows (210/320 rows were shorter).
+            </p>
+            <p class="text-secondary small mb-2">
+              <strong>Retest Result:</strong> By tightening the universal prompt instructions and the blueprint format specifications, summary length compliance reached <strong>100% (320/320)</strong>.
+            </p>
+            <p class="text-secondary small mb-0">
+              <strong>Robustness:</strong> All 320 unique rows returned valid JSON on the first parse, and all <strong>8 negation cases</strong> (e.g. <em>"not a victim of fraud"</em>, <em>"no fraudulent activity"</em>) were correctly classified as positive sentiment and marked non-complaints (<code>isComplaint: false</code>).
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 5: How It Is Used in the App -->
+  <section class="mb-5">
+    <div class="surface-card p-4">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="brand-mark-small"><i class="bi bi-lightning-charge-fill"></i></span>
+        <h2 class="h5 fw-bold mb-0">5. How It Is Used in the Application</h2>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-md-4">
+          <div class="p-3 bg-light rounded-3 border h-100">
+            <div class="fw-bold text-dark mb-1"><i class="bi bi-speedometer2 text-primary me-1"></i> Executive Dashboard</div>
+            <p class="text-secondary small mb-0">Adaption labels supply sentiment breakdown, complaint shares, topic distribution charts, and timeline volume trends.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-3 bg-light rounded-3 border h-100">
+            <div class="fw-bold text-dark mb-1"><i class="bi bi-graph-up-arrow text-primary me-1"></i> 4-Factor Priority Score</div>
+            <p class="text-secondary small mb-0">The 16 topics are scored by <code>100 * (0.35 * volume + 0.30 * negativity + 0.20 * severity + 0.15 * trend)</code> using Adaption metadata.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-3 bg-light rounded-3 border h-100">
+            <div class="fw-bold text-dark mb-1"><i class="bi bi-lightbulb text-primary me-1"></i> Actionable Recommendations</div>
+            <p class="text-secondary small mb-0">Generated issue summaries and suggested actions feed directly into issue tracking and executive report snapshots.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 p-3 bg-white border rounded-3">
+        <h3 class="h6 fw-bold text-dark mb-1"><i class="bi bi-cpu-fill text-primary me-1"></i> Runtime Similarity Classifier (services/analysisService.js)</h3>
+        <p class="text-secondary small mb-0">
+          When users submit new feedback via manual entry or CSV upload, InsightFlow does not re-query expensive LLMs blindly. Instead, our runtime analysis service utilizes the <strong>320 Adaption-labelled examples</strong> as an indexed reference bank. A k-NN similarity classifier computes token and bigram overlap with negation sensitivity to transfer high-confidence Adaption labels to new incoming feedback, falling back gracefully to deterministic rule sets if needed.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 6: Small Footer Note -->
+  <div class="text-center text-muted small py-2">
+    <p class="mb-0">Demo data: dates and sources are simulated.</p>
+  </div>
+</div>

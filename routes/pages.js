@@ -426,9 +426,43 @@ router.get('/r/:token', async (req, res) => {
   }
 });
 
-const placeholders = [
-  { path: '/adaption', key: 'adaption', title: 'Adaption', phase: 'Planned for Phase 8', icon: 'diagram-3', description: 'See how Adaption contributes to the project data workflow and review run details here.' },
-];
+router.get('/adaption', async (req, res) => {
+  let adaptionRuns = [];
+  let feedbackCount = 0;
+  let analysisCount = 0;
+  let producerDistribution = [];
+
+  if (mongoose.connection.readyState === 1) {
+    try {
+      const [runs, fbCount, anCount, producers] = await Promise.all([
+        AdaptionRun.find().sort({ createdAt: 1 }).lean(),
+        Feedback.countDocuments(),
+        Analysis.countDocuments(),
+        Feedback.aggregate([
+          { $group: { _id: '$analysis.producedBy', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+        ]),
+      ]);
+      adaptionRuns = runs;
+      feedbackCount = fbCount;
+      analysisCount = anCount;
+      producerDistribution = producers;
+    } catch {
+      // Fallback to static numbers if query fails
+    }
+  }
+
+  res.render('pages/adaption', {
+    pageTitle: 'Adaption Pipeline & Evaluation',
+    activeNav: 'adaption',
+    adaptionRuns,
+    feedbackCount,
+    analysisCount,
+    producerDistribution,
+  });
+});
+
+const placeholders = [];
 
 for (const page of placeholders) {
   router.get(page.path, (req, res) => res.render('pages/placeholder', {
