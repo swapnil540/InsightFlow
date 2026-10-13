@@ -1,6 +1,7 @@
 const express = require('express');
 const { analyzeText } = require('../services/analysisService');
 const { getStats, getTopics, getTrends } = require('../services/statsService');
+const { getPriorities } = require('../services/priorityService');
 
 const router = express.Router();
 const RATE_WINDOW_MS = 60 * 1000;
@@ -60,6 +61,14 @@ router.get('/topics', async (req, res) => {
 router.get('/trends', async (req, res) => {
   try {
     res.json(await getTrends(req.query));
+  } catch (error) {
+    sendAnalyticsError(res, error);
+  }
+});
+
+router.get('/priorities', async (req, res) => {
+  try {
+    res.json(await getPriorities(req.query));
   } catch (error) {
     sendAnalyticsError(res, error);
   }

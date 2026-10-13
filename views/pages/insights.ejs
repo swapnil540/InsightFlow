@@ -1,0 +1,345 @@
+<div class="container py-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+      <h1 class="h2 mb-1">Priorities &amp; Recommendations</h1>
+      <p class="text-muted mb-0">
+        <% if (window && window.from && window.to) { %>
+          Window: <strong><%= window.from.slice(0, 10) %></strong> to <strong><%= window.to.slice(0, 10) %></strong> (<%= window.days %> days)
+        <% } else { %>
+          Window: Last 90 days
+        <% } %>
+        &bull; <span class="badge bg-light text-secondary border">Demo data: dates and sources are simulated.</span>
+      </p>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <!-- Preset Filter -->
+      <div class="btn-group" role="group" aria-label="Time window preset">
+        <a href="/insights?preset=7<%= selectedCategory ? '&category=' + encodeURIComponent(selectedCategory) : '' %>"
+           class="btn btn-sm <%= selectedPreset === '7' ? 'btn-primary' : 'btn-outline-secondary' %>">7 Days</a>
+        <a href="/insights?preset=30<%= selectedCategory ? '&category=' + encodeURIComponent(selectedCategory) : '' %>"
+           class="btn btn-sm <%= selectedPreset === '30' ? 'btn-primary' : 'btn-outline-secondary' %>">30 Days</a>
+        <a href="/insights?preset=90<%= selectedCategory ? '&category=' + encodeURIComponent(selectedCategory) : '' %>"
+           class="btn btn-sm <%= selectedPreset === '90' || !selectedPreset ? 'btn-primary' : 'btn-outline-secondary' %>">90 Days</a>
+      </div>
+
+      <!-- Category Filter -->
+      <form method="GET" action="/insights" class="d-flex align-items-center gap-2">
+        <% if (selectedPreset) { %>
+          <input type="hidden" name="preset" value="<%= selectedPreset %>">
+        <% } %>
+        <select name="category" class="form-select form-select-sm" onchange="this.form.submit()" aria-label="Filter by category">
+          <option value="">All Categories</option>
+          <% (categories || []).forEach(cat => { %>
+            <option value="<%= cat %>" <%= selectedCategory === cat ? 'selected' : '' %>><%= cat %></option>
+          <% }) %>
+        </select>
+        <% if (selectedCategory) { %>
+          <a href="/insights?preset=<%= selectedPreset || '90' %>" class="btn btn-sm btn-outline-danger" title="Clear category filter">
+            <i class="bi bi-x-lg"></i>
+          </a>
+        <% } %>
+      </form>
+    </div>
+  </div>
+
+  <% if (typeof notice !== 'undefined' && notice) { %>
+    <div class="alert alert-<%= notice.type || 'info' %> alert-dismissible fade show" role="alert">
+      <i class="bi bi-<%= notice.icon || 'info-circle' %> me-2"></i><%= notice.message %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  <% } %>
+
+  <!-- Collapsible: How the score works -->
+  <div class="card mb-4 border-0 shadow-sm">
+    <div class="card-header bg-white py-2">
+      <button class="btn btn-link btn-sm text-decoration-none text-secondary p-0 d-flex align-items-center gap-2"
+              type="button" data-bs-toggle="collapse" data-bs-target="#scoreFormulaBox" aria-expanded="false" aria-controls="scoreFormulaBox">
+        <i class="bi bi-info-circle-fill text-primary"></i>
+        <span><strong>How the priority score works</strong> (formula &amp; weights)</span>
+        <i class="bi bi-chevron-down ms-auto"></i>
+      </button>
+    </div>
+    <div class="collapse" id="scoreFormulaBox">
+      <div class="card-body bg-light rounded-bottom">
+        <p class="mb-2">
+          InsightFlow combines <strong>four data-backed factors</strong> to rank issues transparently. Only topics with at least <strong>5 complaints</strong> are scored.
+        </p>
+        <div class="bg-white p-3 rounded border font-monospace small mb-3">
+          Priority Score = round(100 &times; (0.35 &times; Volume + 0.30 &times; Negativity + 0.20 &times; Severity + 0.15 &times; Trend))
+        </div>
+        <div class="row g-3 small">
+          <div class="col-md-3">
+            <div class="border rounded p-2 bg-white h-100">
+              <strong class="text-primary">1. Volume (35%)</strong>
+              <div class="text-muted mt-1">Complaints for topic / max complaints across topics. Measures relative problem scale.</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="border rounded p-2 bg-white h-100">
+              <strong class="text-primary">2. Negativity (30%)</strong>
+              <div class="text-muted mt-1">(Negative + Mixed mentions) / all mentions of topic. Reflects customer sentiment intensity.</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="border rounded p-2 bg-white h-100">
+              <strong class="text-primary">3. Severity (20%)</strong>
+              <div class="text-muted mt-1">Average complaint severity / 5. Prioritizes severe issues like fraud over mild inconveniences.</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="border rounded p-2 bg-white h-100">
+              <strong class="text-primary">4. Trend (15%)</strong>
+              <div class="text-muted mt-1">Growth in last 14d vs previous 14d, clamped to [0, 1]. Detects fast-rising issues.</div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-3 small text-muted">
+          Badges: <span class="badge bg-danger">Critical &ge; 70</span>, <span class="badge bg-warning text-dark">High &ge; 50</span>, <span class="badge bg-info text-dark">Medium &ge; 30</span>, <span class="badge bg-secondary">Low &lt; 30</span>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <% if (!priorities || priorities.length === 0) { %>
+    <div class="card border-0 shadow-sm p-5 text-center my-4">
+      <div class="text-muted mb-3"><i class="bi bi-inbox fs-1"></i></div>
+      <h4>No high-priority issues found</h4>
+      <p class="text-muted">No topics meet the minimum threshold of 5 complaints for the selected filter and time window.</p>
+      <div>
+        <a href="/insights" class="btn btn-outline-primary btn-sm">Reset filters</a>
+      </div>
+    </div>
+  <% } else { %>
+
+    <!-- Top 5 Priority Cards -->
+    <h2 class="h4 mb-3 d-flex align-items-center gap-2">
+      <span>Top Priority Issues</span>
+      <span class="badge bg-secondary fs-6"><%= topPriorities.length %></span>
+    </h2>
+
+    <div class="row g-4 mb-5">
+      <% topPriorities.forEach(item => { %>
+        <%
+          let badgeClass = 'bg-secondary';
+          if (item.score >= 70) badgeClass = 'bg-danger';
+          else if (item.score >= 50) badgeClass = 'bg-warning text-dark';
+          else if (item.score >= 30) badgeClass = 'bg-info text-dark';
+          const isTracked = trackedSet && trackedSet.has(item.key);
+        %>
+        <div class="col-12">
+          <div class="card shadow-sm border-0 h-100">
+            <div class="card-body p-4">
+              <!-- Header Row -->
+              <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                <div class="d-flex align-items-center gap-3">
+                  <span class="badge rounded-pill bg-dark fs-5 px-3 py-2">#<%= item.rank %></span>
+                  <div>
+                    <h3 class="h5 mb-1"><%= item.label %></h3>
+                    <div class="text-muted small">
+                      <span class="badge bg-light text-dark border me-1"><%= item.parentCategory %></span>
+                      <span>Topic key: <code><%= item.key %></code></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge <%= badgeClass %> fs-6 px-3 py-2"><%= item.priorityLevel %></span>
+                  <div class="text-end ms-2">
+                    <span class="fs-4 fw-bold text-dark"><%= item.score %></span>
+                    <span class="text-muted small">/ 100</span>
+                  </div>
+                  <div class="ms-3">
+                    <form action="/issues" method="POST" class="d-inline">
+                      <input type="hidden" name="topicKey" value="<%= item.key %>">
+                      <% if (isTracked) { %>
+                        <button type="button" class="btn btn-sm btn-outline-success" disabled>
+                          <i class="bi bi-check-circle-fill me-1"></i>Tracked
+                        </button>
+                      <% } else { %>
+                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                          <i class="bi bi-plus-circle me-1"></i>Track issue
+                        </button>
+                      <% } %>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Factor Progress Bars -->
+              <div class="row g-3 mb-3 bg-light p-3 rounded">
+                <div class="col-6 col-md-3">
+                  <div class="d-flex justify-content-between small text-muted mb-1">
+                    <span>Volume (35%)</span>
+                    <span><%= Math.round(item.factors.volume * 100) %>%</span>
+                  </div>
+                  <div class="progress" style="height: 6px;">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: <%= Math.round(item.factors.volume * 100) %>%;" aria-valuenow="<%= Math.round(item.factors.volume * 100) %>" aria-valuemin="0" aria-valuemax="100"></div>
+                  </div>
+                  <div class="small text-muted mt-1"><%= item.complaints %> complaints</div>
+                </div>
+
+                <div class="col-6 col-md-3">
+                  <div class="d-flex justify-content-between small text-muted mb-1">
+                    <span>Negativity (30%)</span>
+                    <span><%= Math.round(item.factors.negativity * 100) %>%</span>
+                  </div>
+                  <div class="progress" style="height: 6px;">
+                    <div class="progress-bar bg-danger" role="progressbar" style="width: <%= Math.round(item.factors.negativity * 100) %>%;" aria-valuenow="<%= Math.round(item.factors.negativity * 100) %>" aria-valuemin="0" aria-valuemax="100"></div>
+                  </div>
+                  <div class="small text-muted mt-1"><%= item.rawFactors.negativity.negativeMixedMentions %> of <%= item.rawFactors.negativity.totalMentions %> mentions</div>
+                </div>
+
+                <div class="col-6 col-md-3">
+                  <div class="d-flex justify-content-between small text-muted mb-1">
+                    <span>Severity (20%)</span>
+                    <span><%= Math.round(item.factors.severity * 100) %>%</span>
+                  </div>
+                  <div class="progress" style="height: 6px;">
+                    <div class="progress-bar bg-warning text-dark" role="progressbar" style="width: <%= Math.round(item.factors.severity * 100) %>%;" aria-valuenow="<%= Math.round(item.factors.severity * 100) %>" aria-valuemin="0" aria-valuemax="100"></div>
+                  </div>
+                  <div class="small text-muted mt-1"><%= item.rawFactors.severity.avgSeverity %> / 5.0 avg severity</div>
+                </div>
+
+                <div class="col-6 col-md-3">
+                  <div class="d-flex justify-content-between small text-muted mb-1">
+                    <span>Trend (15%)</span>
+                    <span><%= Math.round(item.factors.trend * 100) %>%</span>
+                  </div>
+                  <div class="progress" style="height: 6px;">
+                    <div class="progress-bar bg-info" role="progressbar" style="width: <%= Math.round(item.factors.trend * 100) %>%;" aria-valuenow="<%= Math.round(item.factors.trend * 100) %>" aria-valuemin="0" aria-valuemax="100"></div>
+                  </div>
+                  <div class="small text-muted mt-1"><%= item.rawFactors.trend.recent14 %> recent vs <%= item.rawFactors.trend.prev14 %> prev 14d</div>
+                </div>
+              </div>
+
+              <!-- Why this matters sentence -->
+              <div class="alert alert-light border-start border-4 border-primary py-2 px-3 mb-3">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-lightbulb-fill text-warning"></i>
+                  <span class="fw-semibold">Why this matters:</span>
+                </div>
+                <div class="text-secondary mt-1"><%= item.explanation %></div>
+              </div>
+
+              <!-- Recommendation -->
+              <div class="p-3 mb-3 border rounded bg-white">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <span class="badge bg-primary px-2 py-1"><i class="bi bi-people-fill me-1"></i><%= item.recommendation.team %></span>
+                  <span class="fw-semibold text-dark">Actionable Recommendation</span>
+                </div>
+                <p class="mb-2 text-dark"><%= item.recommendation.action %></p>
+                <div class="small text-muted">
+                  <i class="bi bi-robot me-1"></i>
+                  <strong><%= item.suggestedActionLabel %>:</strong>
+                  <span>&ldquo;<%= item.suggestedAction %>&rdquo;</span>
+                </div>
+              </div>
+
+              <!-- Evidence Quotes -->
+              <% if (item.evidence && item.evidence.length > 0) { %>
+                <div>
+                  <h4 class="small fw-bold text-muted text-uppercase mb-2">Supporting Evidence (<%= item.evidence.length %> quotes)</h4>
+                  <div class="row g-2">
+                    <% item.evidence.forEach(quote => { %>
+                      <div class="col-12 col-lg-4">
+                        <div class="border rounded p-2 bg-light h-100 d-flex flex-column justify-content-between">
+                          <p class="small fst-italic text-secondary mb-2">&ldquo;<%= quote.text %>&rdquo;</p>
+                          <div class="d-flex justify-content-between align-items-center small">
+                            <span class="badge bg-white text-dark border"><%= quote.mentions %> <%= quote.mentions === 1 ? 'mention' : 'mentions' %></span>
+                            <span class="badge bg-secondary">Severity <%= quote.severity %>/5</span>
+                          </div>
+                        </div>
+                      </div>
+                    <% }) %>
+                  </div>
+                </div>
+              <% } %>
+
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+
+    <!-- Compact Table of All Ranked Topics -->
+    <div class="card border-0 shadow-sm mb-5">
+      <div class="card-header bg-white py-3">
+        <h3 class="h5 mb-0">All Ranked Topics (<%= priorities.length %>)</h3>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light small">
+            <tr>
+              <th scope="col" style="width: 60px;">Rank</th>
+              <th scope="col">Topic</th>
+              <th scope="col">Category</th>
+              <th scope="col" style="width: 100px;">Score</th>
+              <th scope="col" style="width: 100px;">Priority</th>
+              <th scope="col" class="text-end">Complaints</th>
+              <th scope="col" class="text-end">Negative %</th>
+              <th scope="col" class="text-end">Avg Sev</th>
+              <th scope="col" class="text-end">Trend</th>
+              <th scope="col" style="width: 120px;" class="text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% priorities.forEach(item => { %>
+              <%
+                let badgeClass = 'bg-secondary';
+                if (item.score >= 70) badgeClass = 'bg-danger';
+                else if (item.score >= 50) badgeClass = 'bg-warning text-dark';
+                else if (item.score >= 30) badgeClass = 'bg-info text-dark';
+                const isTracked = trackedSet && trackedSet.has(item.key);
+              %>
+              <tr>
+                <td><strong>#<%= item.rank %></strong></td>
+                <td>
+                  <div class="fw-semibold"><%= item.label %></div>
+                  <div class="text-muted small"><code><%= item.key %></code></div>
+                </td>
+                <td><span class="badge bg-light text-secondary border"><%= item.parentCategory %></span></td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="fw-bold"><%= item.score %></span>
+                    <div class="progress flex-grow-1" style="height: 4px; width: 40px;">
+                      <div class="progress-bar bg-primary" role="progressbar" style="width: <%= item.score %>%;"></div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge <%= badgeClass %>"><%= item.priorityLevel %></span></td>
+                <td class="text-end">
+                  <%= item.complaints %>
+                  <div class="text-muted small"><%= item.uniquePhrasings %> unique</div>
+                </td>
+                <td class="text-end"><%= Math.round(item.factors.negativity * 100) %>%</td>
+                <td class="text-end"><%= item.rawFactors.severity.avgSeverity %>/5</td>
+                <td class="text-end">
+                  <% if (item.rawFactors.trend.recent14 > item.rawFactors.trend.prev14) { %>
+                    <span class="text-danger fw-semibold"><i class="bi bi-arrow-up-right me-1"></i>+<%= item.rawFactors.trend.recent14 - item.rawFactors.trend.prev14 %></span>
+                  <% } else if (item.rawFactors.trend.recent14 === item.rawFactors.trend.prev14) { %>
+                    <span class="text-muted">&plusmn;0</span>
+                  <% } else { %>
+                    <span class="text-success"><i class="bi bi-arrow-down-right me-1"></i><%= item.rawFactors.trend.recent14 - item.rawFactors.trend.prev14 %></span>
+                  <% } %>
+                </td>
+                <td class="text-end">
+                  <form action="/issues" method="POST" class="d-inline">
+                    <input type="hidden" name="topicKey" value="<%= item.key %>">
+                    <% if (isTracked) { %>
+                      <button type="button" class="btn btn-sm btn-outline-success" disabled>Tracked</button>
+                    <% } else { %>
+                      <button type="submit" class="btn btn-sm btn-outline-primary">Track</button>
+                    <% } %>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  <% } %>
+
+</div>

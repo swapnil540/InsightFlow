@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const Feedback = require('../models/feedback');
 const Analysis = require('../models/analysis');
 const AdaptionRun = require('../models/adaptionRun');
+const Issue = require('../models/issue');
+const { getPriorities } = require('../services/priorityService');
 const {
   CATEGORY_VALUES,
   SENTIMENT_VALUES,
@@ -271,8 +273,52 @@ router.get('/dashboard', (req, res) => {
   });
 });
 
+router.get('/insights', async (req, res) => {
+  try {
+    const data = await getPriorities(req.query);
+    let trackedSet = new Set();
+    if (mongoose.connection.readyState === 1) {
+      const tracked = await Issue.find({ status: { $in: ['open', 'investigating'] } }, { topicKey: 1 }).lean();
+      trackedSet = new Set(tracked.map((i) => i.topicKey));
+    }
+
+    let notice = null;
+    if (req.query.notice === 'tracked') {
+      notice = { type: 'success', icon: 'check-circle-fill', message: 'Issue is now tracked under Issues.' };
+    } else if (req.query.notice === 'exists') {
+      notice = { type: 'info', icon: 'info-circle-fill', message: 'An active issue for this topic is already being tracked.' };
+    }
+
+    res.render('pages/insights', {
+      pageTitle: 'Priorities & Recommendations',
+      activeNav: 'insights',
+      window: data.window,
+      priorities: data.priorities,
+      topPriorities: data.priorities.slice(0, 5),
+      trackedSet,
+      selectedCategory: req.query.category || '',
+      selectedPreset: req.query.preset || (req.query.from || req.query.to ? '' : '90'),
+      categories: CATEGORY_VALUES,
+      notice,
+    });
+  } catch (error) {
+    res.render('pages/insights', {
+      pageTitle: 'Priorities & Recommendations',
+      activeNav: 'insights',
+      window: { from: null, to: null, days: 0 },
+      priorities: [],
+      topPriorities: [],
+      trackedSet: new Set(),
+      selectedCategory: req.query.category || '',
+      selectedPreset: req.query.preset || '90',
+      categories: CATEGORY_VALUES,
+      notice: null,
+      error: error.message,
+    });
+  }
+});
+
 const placeholders = [
-  { path: '/insights', key: 'insights', title: 'Insights', phase: 'Planned for Phase 6', icon: 'lightbulb', description: 'Prioritized customer issues, supporting evidence, and actionable recommendations will appear here.' },
   { path: '/issues', key: 'issues', title: 'Issues', phase: 'Planned for Phase 7', icon: 'kanban', description: 'Track issue status, ownership, and team notes here.' },
   { path: '/reports', key: 'reports', title: 'Reports', phase: 'Planned for Phase 7', icon: 'file-earmark-bar-graph', description: 'Create and share reports built from feedback and issue snapshots here.' },
   { path: '/adaption', key: 'adaption', title: 'Adaption', phase: 'Planned for Phase 8', icon: 'diagram-3', description: 'See how Adaption contributes to the project data workflow and review run details here.' },
