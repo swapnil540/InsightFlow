@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title><%= report.title %> &mdash; InsightFlow Report</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    body {
+      background-color: #f8fafc;
+      color: #1e293b;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    .report-sheet {
+      max-width: 1040px;
+      margin: 2rem auto;
+      background: #ffffff;
+      padding: 3rem;
+      border-radius: 0.75rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+    .kpi-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.5rem;
+      padding: 1.25rem;
+    }
+    .quote-box {
+      border-left: 3px solid #cbd5e1;
+      padding-left: 0.75rem;
+      margin-bottom: 0.5rem;
+      font-style: italic;
+      color: #475569;
+    }
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      body {
+        background: #ffffff !important;
+        font-size: 10pt;
+      }
+      .report-sheet {
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        max-width: 100% !important;
+      }
+      .card, .table, .kpi-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      a {
+        text-decoration: none !important;
+        color: inherit !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Action Bar (hidden on print) -->
+  <div class="no-print bg-dark text-white py-2 px-3 sticky-top shadow-sm">
+    <div class="container d-flex justify-content-between align-items-center" style="max-width: 1040px;">
+      <div class="d-flex align-items-center gap-2">
+        <a href="/reports" class="btn btn-sm btn-outline-light">
+          <i class="bi bi-arrow-left me-1"></i>Back to Reports
+        </a>
+        <span class="text-secondary small">&bull;</span>
+        <span class="small text-light">Executive Briefing Snapshot</span>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-sm btn-outline-info" onclick="copyShareLink()">
+          <i class="bi bi-link-45deg me-1"></i>Copy share link
+        </button>
+        <button type="button" class="btn btn-sm btn-light fw-semibold" onclick="window.print()">
+          <i class="bi bi-printer me-1"></i>Print / Save as PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="report-sheet">
+
+      <!-- Header & Brand -->
+      <div class="border-bottom pb-4 mb-4">
+        <div class="d-flex justify-content-between align-items-start gap-3">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-primary text-uppercase px-2 py-1">InsightFlow</span>
+              <span class="text-muted small">Executive Decision Report</span>
+            </div>
+            <h1 class="h2 fw-bold text-dark mb-2"><%= report.title %></h1>
+            <div class="text-muted small">
+              Generated: <strong><%= new Date(report.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></strong>
+              <% if (payload.window?.from && payload.window?.to) { %>
+                &bull; Observation Window: <strong><%= payload.window.from.slice(0, 10) %></strong> to <strong><%= payload.window.to.slice(0, 10) %></strong> (<%= payload.window.days %> days)
+              <% } %>
+            </div>
+          </div>
+          <div class="text-end text-muted small d-none d-sm-block">
+            <div class="fw-semibold text-dark">Build Battle 2026</div>
+            <div class="font-monospace">Ref: <%= report.token.slice(0, 8) %></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Executive Summary (3 auto-generated bullets) -->
+      <div class="card border-0 bg-light p-4 mb-4 rounded-3">
+        <h2 class="h5 fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+          <i class="bi bi-lightning-charge-fill text-warning"></i>
+          Executive Summary
+        </h2>
+        <ul class="mb-0 text-secondary ps-3">
+          <% (payload.executiveSummary || []).forEach(bullet => { %>
+            <li class="mb-2"><%= bullet %></li>
+          <% }) %>
+        </ul>
+      </div>
+
+      <!-- KPI Strip -->
+      <h2 class="h6 text-uppercase fw-bold text-muted mb-3">Key Metrics Overview</h2>
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+          <div class="kpi-card text-center">
+            <div class="text-muted small text-uppercase fw-semibold mb-1">Total Mentions</div>
+            <div class="fs-4 fw-bold text-dark"><%= payload.kpis?.totalMentions?.toLocaleString() || 0 %></div>
+            <div class="small text-muted"><%= payload.kpis?.uniquePhrasings || 0 %> unique phrasings</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="kpi-card text-center">
+            <div class="text-muted small text-uppercase fw-semibold mb-1">Complaints</div>
+            <div class="fs-4 fw-bold text-danger"><%= payload.kpis?.complaintMentions?.toLocaleString() || 0 %></div>
+            <div class="small text-muted"><%= Math.round((payload.kpis?.complaintShare || 0) * 100) %>% of all feedback</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="kpi-card text-center">
+            <div class="text-muted small text-uppercase fw-semibold mb-1">Negative Sentiment</div>
+            <div class="fs-4 fw-bold text-warning"><%= Math.round((payload.kpis?.negativeShare || 0) * 100) %>%</div>
+            <div class="small text-muted">Negative or mixed share</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="kpi-card text-center">
+            <div class="text-muted small text-uppercase fw-semibold mb-1">Sentiment Score</div>
+            <div class="fs-4 fw-bold <%= (payload.kpis?.avgSentimentScore || 0) >= 0 ? 'text-success' : 'text-danger' %>">
+              <%= Number(payload.kpis?.avgSentimentScore || 0).toFixed(2) %>
+            </div>
+            <div class="small text-muted">Scale from -1.0 to +1.0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Priorities & Grounded Recommendations -->
+      <h2 class="h5 fw-bold text-dark mb-3 mt-4">High-Priority Issues &amp; Grounded Recommendations</h2>
+      <div class="card border mb-4">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small">
+              <tr>
+                <th scope="col" style="width: 50px;">Rank</th>
+                <th scope="col" style="width: 180px;">Topic</th>
+                <th scope="col" style="width: 90px;">Priority</th>
+                <th scope="col">Recommendation &amp; Action Plan</th>
+                <th scope="col" style="width: 260px;">Customer Evidence Quotes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% (payload.topPriorities || []).forEach(item => { %>
+                <%
+                  let badgeClass = 'bg-secondary';
+                  if (item.score >= 70) badgeClass = 'bg-danger';
+                  else if (item.score >= 50) badgeClass = 'bg-warning text-dark';
+                  else if (item.score >= 30) badgeClass = 'bg-info text-dark';
+                %>
+                <tr>
+                  <td><span class="badge bg-dark">#<%= item.rank %></span></td>
+                  <td>
+                    <div class="fw-semibold text-dark"><%= item.label %></div>
+                    <div class="small text-muted"><%= item.parentCategory %></div>
+                    <div class="small text-muted mt-1"><%= item.complaints %> complaints (<%= item.uniquePhrasings %> unique)</div>
+                  </td>
+                  <td>
+                    <span class="badge <%= badgeClass %>"><%= item.priorityLevel %></span>
+                    <div class="fw-bold mt-1"><%= item.score %>/100</div>
+                  </td>
+                  <td>
+                    <div class="mb-2">
+                      <span class="badge bg-primary me-1"><%= item.recommendation?.team || 'Operations' %></span>
+                      <strong class="text-dark"><%= item.recommendation?.action %></strong>
+                    </div>
+                    <div class="small text-secondary mb-1">
+                      <em>Why: <%= item.explanation %></em>
+                    </div>
+                    <% if (item.suggestedAction) { %>
+                      <div class="small text-muted">
+                        <i class="bi bi-robot me-1"></i>Adaption suggestion: &ldquo;<%= item.suggestedAction %>&rdquo;
+                      </div>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (item.evidence && item.evidence.length > 0) { %>
+                      <% item.evidence.slice(0, 2).forEach(q => { %>
+                        <div class="quote-box small">
+                          &ldquo;<%= q.text %>&rdquo;
+                          <div class="d-flex gap-2 mt-1">
+                            <span class="badge bg-light text-dark border"><%= q.mentions %> mentions</span>
+                            <span class="badge bg-secondary">Severity <%= q.severity %>/5</span>
+                          </div>
+                        </div>
+                      <% }) %>
+                    <% } else { %>
+                      <span class="text-muted small fst-italic">No quotes attached</span>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tracked Issues Status Table -->
+      <h2 class="h5 fw-bold text-dark mb-3 mt-4">Tracked Operational Work</h2>
+      <% if (!payload.trackedIssues || payload.trackedIssues.length === 0) { %>
+        <p class="text-muted small fst-italic mb-4">No issues are currently being tracked under operational workflows.</p>
+      <% } else { %>
+        <div class="card border mb-4">
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="table-light small">
+                <tr>
+                  <th scope="col">Issue</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Owner</th>
+                  <th scope="col">Notes</th>
+                  <th scope="col">Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% payload.trackedIssues.forEach(t => { %>
+                  <%
+                    let statusBadge = 'bg-secondary';
+                    if (t.status === 'open') statusBadge = 'bg-warning text-dark';
+                    else if (t.status === 'investigating') statusBadge = 'bg-info text-dark';
+                    else if (t.status === 'resolved') statusBadge = 'bg-success';
+                  %>
+                  <tr>
+                    <td><div class="fw-semibold text-dark"><%= t.title %></div></td>
+                    <td><span class="badge <%= statusBadge %> text-capitalize"><%= t.status %></span></td>
+                    <td><span class="small text-secondary"><%= t.owner || 'Unassigned' %></span></td>
+                    <td><span class="small text-muted"><%= t.notes || '—' %></span></td>
+                    <td><span class="small text-muted"><%= t.createdAt %></span></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% } %>
+
+      <!-- Footnote -->
+      <div class="border-top pt-3 mt-4 text-center">
+        <p class="text-muted small mb-0">
+          <i class="bi bi-info-circle me-1"></i>
+          <%= payload.note || 'Feedback labels generated with Adaption Adaptive Data; dates and sources in this demo are simulated.' %>
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function copyShareLink() {
+      navigator.clipboard.writeText(window.location.href);
+      alert('Shareable report link copied to clipboard!');
+    }
+  </script>
+</body>
+</html>

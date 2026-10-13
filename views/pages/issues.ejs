@@ -1,0 +1,160 @@
+<div class="container py-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+      <h1 class="h2 mb-1">Tracked Issues</h1>
+      <p class="text-muted mb-0">Track ownership, operational status, and progress on high-priority customer feedback issues.</p>
+    </div>
+    <div>
+      <a href="/insights" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-lightbulb me-1"></i>Discover priorities
+      </a>
+    </div>
+  </div>
+
+  <% if (typeof notice !== 'undefined' && notice) { %>
+    <div class="alert alert-<%= notice.type || 'info' %> alert-dismissible fade show" role="alert">
+      <i class="bi bi-<%= notice.icon || 'info-circle' %> me-2"></i><%= notice.message %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  <% } %>
+
+  <!-- Status Filter Pills -->
+  <div class="d-flex flex-wrap gap-2 mb-4">
+    <a href="/issues" class="btn btn-sm <%= !selectedStatus ? 'btn-primary' : 'btn-outline-secondary' %>">
+      All <span class="badge bg-white text-dark ms-1"><%= counts.all %></span>
+    </a>
+    <a href="/issues?status=open" class="btn btn-sm <%= selectedStatus === 'open' ? 'btn-warning text-dark' : 'btn-outline-secondary' %>">
+      Open <span class="badge bg-warning text-dark ms-1"><%= counts.open %></span>
+    </a>
+    <a href="/issues?status=investigating" class="btn btn-sm <%= selectedStatus === 'investigating' ? 'btn-info text-dark' : 'btn-outline-secondary' %>">
+      Investigating <span class="badge bg-info text-dark ms-1"><%= counts.investigating %></span>
+    </a>
+    <a href="/issues?status=resolved" class="btn btn-sm <%= selectedStatus === 'resolved' ? 'btn-success' : 'btn-outline-secondary' %>">
+      Resolved <span class="badge bg-success ms-1"><%= counts.resolved %></span>
+    </a>
+  </div>
+
+  <% if (!issues || issues.length === 0) { %>
+    <div class="card border-0 shadow-sm p-5 text-center my-4">
+      <div class="text-muted mb-3"><i class="bi bi-check2-circle fs-1"></i></div>
+      <h4>No issues in this view</h4>
+      <p class="text-muted">
+        <% if (selectedStatus) { %>
+          There are currently no tracked issues with status "<strong><%= selectedStatus %></strong>".
+        <% } else { %>
+          No issues have been tracked yet. You can promote critical feedback topics directly from the Priorities page.
+        <% } %>
+      </p>
+      <div>
+        <a href="/insights" class="btn btn-primary btn-sm">
+          <i class="bi bi-lightbulb me-1"></i>View priority recommendations
+        </a>
+      </div>
+    </div>
+  <% } else { %>
+
+    <div class="card border-0 shadow-sm">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light small">
+            <tr>
+              <th scope="col" style="min-width: 240px;">Issue Title</th>
+              <th scope="col">Status</th>
+              <th scope="col">Priority Score</th>
+              <th scope="col">Owner</th>
+              <th scope="col" style="min-width: 200px;">Notes</th>
+              <th scope="col">Date Tracked</th>
+              <th scope="col" class="text-end">Manage</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% issues.forEach(issue => { %>
+              <%
+                let statusBadge = 'bg-secondary';
+                if (issue.status === 'open') statusBadge = 'bg-warning text-dark';
+                else if (issue.status === 'investigating') statusBadge = 'bg-info text-dark';
+                else if (issue.status === 'resolved') statusBadge = 'bg-success';
+
+                const snap = issue.prioritySnapshot;
+                let priorityBadge = 'bg-secondary';
+                if (snap?.score >= 70) priorityBadge = 'bg-danger';
+                else if (snap?.score >= 50) priorityBadge = 'bg-warning text-dark';
+                else if (snap?.score >= 30) priorityBadge = 'bg-info text-dark';
+              %>
+              <tr>
+                <td>
+                  <div class="fw-semibold text-dark"><%= issue.title %></div>
+                  <div class="small text-muted">
+                    Topic: <code><%= issue.topicKey %></code>
+                    <% if (snap?.recommendation?.team) { %>
+                      &bull; Team: <strong><%= snap.recommendation.team %></strong>
+                    <% } %>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge <%= statusBadge %> text-capitalize"><%= issue.status %></span>
+                </td>
+                <td>
+                  <% if (snap && snap.score != null) { %>
+                    <span class="badge <%= priorityBadge %> me-1"><%= snap.priorityLevel || 'Score' %></span>
+                    <span class="fw-bold"><%= snap.score %></span><span class="text-muted small">/100</span>
+                  <% } else { %>
+                    <span class="text-muted small">—</span>
+                  <% } %>
+                </td>
+                <td>
+                  <% if (issue.owner) { %>
+                    <span class="badge bg-light text-dark border"><i class="bi bi-person me-1"></i><%= issue.owner %></span>
+                  <% } else { %>
+                    <span class="text-muted fst-italic small">Unassigned</span>
+                  <% } %>
+                </td>
+                <td>
+                  <span class="small text-secondary"><%= issue.notes ? issue.notes : '—' %></span>
+                </td>
+                <td>
+                  <span class="small text-muted">
+                    <%= issue.createdAt ? new Date(issue.createdAt).toISOString().slice(0, 10) : '—' %>
+                  </span>
+                </td>
+                <td class="text-end">
+                  <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#editIssue<%= issue._id %>" aria-expanded="false">
+                    <i class="bi bi-pencil-square me-1"></i>Update
+                  </button>
+                </td>
+              </tr>
+              <!-- Inline Update Form -->
+              <tr class="collapse bg-light" id="editIssue<%= issue._id %>">
+                <td colspan="7" class="p-3 bg-light border-bottom">
+                  <form action="/issues/<%= issue._id %>" method="POST" class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                      <label class="form-label small fw-semibold">Status</label>
+                      <select name="status" class="form-select form-select-sm">
+                        <option value="open" <%= issue.status === 'open' ? 'selected' : '' %>>Open</option>
+                        <option value="investigating" <%= issue.status === 'investigating' ? 'selected' : '' %>>Investigating</option>
+                        <option value="resolved" <%= issue.status === 'resolved' ? 'selected' : '' %>>Resolved</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label small fw-semibold">Owner</label>
+                      <input type="text" name="owner" class="form-control form-control-sm" placeholder="e.g. Sarah K. or Trust Team" value="<%= issue.owner || '' %>">
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label small fw-semibold">Notes</label>
+                      <input type="text" name="notes" class="form-control form-control-sm" placeholder="Action updates, tickets, or root causes..." value="<%= issue.notes || '' %>">
+                    </div>
+                    <div class="col-md-2 text-end">
+                      <button type="submit" class="btn btn-sm btn-primary w-100">Save changes</button>
+                    </div>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  <% } %>
+
+</div>

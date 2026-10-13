@@ -1,0 +1,91 @@
+<div class="container py-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+      <h1 class="h2 mb-1">Executive Reports</h1>
+      <p class="text-muted mb-0">Generate, export, and share business-friendly insight briefings backed by real feedback patterns.</p>
+    </div>
+  </div>
+
+  <% if (typeof notice !== 'undefined' && notice) { %>
+    <div class="alert alert-<%= notice.type || 'info' %> alert-dismissible fade show" role="alert">
+      <i class="bi bi-<%= notice.icon || 'info-circle' %> me-2"></i><%= notice.message %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  <% } %>
+
+  <!-- Generate Report Card -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4">
+      <h2 class="h5 mb-2"><i class="bi bi-file-earmark-plus text-primary me-2"></i>Generate a New Executive Briefing</h2>
+      <p class="text-muted small mb-3">Snapshots current feedback KPIs, top priority recommendations, supporting evidence quotes, and active tracked issues into a clean, shareable report with PDF print formatting.</p>
+      
+      <form action="/reports" method="POST" class="row g-2 align-items-center">
+        <div class="col-md-8 col-lg-9">
+          <input type="text" name="title" class="form-control" placeholder="Report title (e.g. Q3 Customer Experience &amp; Fraud Risk Report)" required>
+        </div>
+        <div class="col-md-4 col-lg-3">
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-file-earmark-bar-graph me-1"></i>Generate Report
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Saved Reports List -->
+  <h2 class="h4 mb-3">Saved Reports</h2>
+
+  <% if (!reports || reports.length === 0) { %>
+    <div class="card border-0 shadow-sm p-5 text-center my-3">
+      <div class="text-muted mb-3"><i class="bi bi-file-earmark-text fs-1"></i></div>
+      <h4>No reports generated yet</h4>
+      <p class="text-muted">Generate your first report above to share findings with executives and product teams.</p>
+    </div>
+  <% } else { %>
+    <div class="card border-0 shadow-sm">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light small">
+            <tr>
+              <th scope="col" style="min-width: 280px;">Report Title</th>
+              <th scope="col">Date Generated</th>
+              <th scope="col">Observation Window</th>
+              <th scope="col" class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% reports.forEach(report => { %>
+              <tr>
+                <td>
+                  <div class="fw-semibold text-dark"><%= report.title %></div>
+                  <div class="small text-muted font-monospace">Token: <%= report.token %></div>
+                </td>
+                <td>
+                  <span class="small text-muted">
+                    <%= report.createdAt ? new Date(report.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—' %>
+                  </span>
+                </td>
+                <td>
+                  <span class="badge bg-light text-secondary border">
+                    <%= report.payload?.window?.days || 90 %> Days
+                  </span>
+                </td>
+                <td class="text-end">
+                  <div class="d-inline-flex gap-2">
+                    <a href="/r/<%= report.token %>" class="btn btn-sm btn-primary">
+                      <i class="bi bi-eye me-1"></i>View
+                    </a>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(window.location.origin + '/r/<%= report.token %>'); alert('Share link copied to clipboard!');">
+                      <i class="bi bi-share me-1"></i>Share link
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% } %>
+
+</div>

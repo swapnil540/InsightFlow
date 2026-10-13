@@ -5,6 +5,8 @@ const Analysis = require('../models/analysis');
 const AdaptionRun = require('../models/adaptionRun');
 const Issue = require('../models/issue');
 const { getPriorities } = require('../services/priorityService');
+const { trackIssue, getIssues, updateIssue } = require('../services/issueService');
+const { generateReport, getReportByToken, listReports } = require('../services/reportService');
 const {
   CATEGORY_VALUES,
   SENTIMENT_VALUES,
@@ -318,9 +320,113 @@ router.get('/insights', async (req, res) => {
   }
 });
 
+const ISSUE_NOTICES = {
+  created: { type: 'success', icon: 'check-circle-fill', message: 'Issue tracked successfully.' },
+  updated: { type: 'success', icon: 'check-circle-fill', message: 'Issue updated successfully.' },
+  exists: { type: 'warning', icon: 'info-circle-fill', message: 'An active issue for this topic is already being tracked.' },
+  invalid: { type: 'danger', icon: 'exclamation-triangle', message: 'Invalid topic key.' },
+};
+
+const REPORT_NOTICES = {
+  created: { type: 'success', icon: 'check-circle-fill', message: 'Report snapshot generated successfully.' },
+};
+
+router.post('/issues', async (req, res) => {
+  const topicKey = req.body?.topicKey;
+  try {
+    const result = await trackIssue(topicKey);
+    if (result.alreadyTracked) {
+      return res.redirect('/issues?notice=exists');
+    }
+    return res.redirect('/issues?notice=created');
+  } catch {
+    return res.redirect('/insights?notice=invalid');
+  }
+});
+
+router.get('/issues', async (req, res) => {
+  try {
+    const status = req.query.status;
+    const { issues, counts } = await getIssues(status);
+    const notice = ISSUE_NOTICES[req.query.notice] || null;
+    res.render('pages/issues', {
+      pageTitle: 'Tracked Issues',
+      activeNav: 'issues',
+      issues,
+      counts,
+      selectedStatus: status || '',
+      notice,
+    });
+  } catch (error) {
+    res.render('pages/issues', {
+      pageTitle: 'Tracked Issues',
+      activeNav: 'issues',
+      issues: [],
+      counts: { all: 0, open: 0, investigating: 0, resolved: 0 },
+      selectedStatus: '',
+      notice: { type: 'danger', icon: 'exclamation-triangle', message: 'Unable to load tracked issues.' },
+    });
+  }
+});
+
+router.post('/issues/:id', async (req, res) => {
+  try {
+    await updateIssue(req.params.id, req.body);
+    res.redirect('/issues?notice=updated');
+  } catch {
+    res.redirect('/issues');
+  }
+});
+
+router.get('/reports', async (req, res) => {
+  try {
+    const reports = await listReports();
+    const notice = REPORT_NOTICES[req.query.notice] || null;
+    res.render('pages/reports', {
+      pageTitle: 'Executive Reports',
+      activeNav: 'reports',
+      reports,
+      notice,
+    });
+  } catch {
+    res.render('pages/reports', {
+      pageTitle: 'Executive Reports',
+      activeNav: 'reports',
+      reports: [],
+      notice: { type: 'danger', icon: 'exclamation-triangle', message: 'Unable to load reports.' },
+    });
+  }
+});
+
+router.post('/reports', async (req, res) => {
+  try {
+    const report = await generateReport(req.body?.title);
+    res.redirect(`/r/${report.token}`);
+  } catch {
+    res.redirect('/reports');
+  }
+});
+
+router.get('/r/:token', async (req, res) => {
+  try {
+    const report = await getReportByToken(req.params.token);
+    if (!report) {
+      return res.status(404).render('pages/404', { pageTitle: 'Report not found' });
+    }
+    res.render('pages/report-view', {
+      layout: false,
+      report,
+      payload: report.payload || {},
+    });
+  } catch {
+    res.status(500).render('pages/error', {
+      pageTitle: 'Unable to load report',
+      message: 'There was an issue opening this report snapshot.',
+    });
+  }
+});
+
 const placeholders = [
-  { path: '/issues', key: 'issues', title: 'Issues', phase: 'Planned for Phase 7', icon: 'kanban', description: 'Track issue status, ownership, and team notes here.' },
-  { path: '/reports', key: 'reports', title: 'Reports', phase: 'Planned for Phase 7', icon: 'file-earmark-bar-graph', description: 'Create and share reports built from feedback and issue snapshots here.' },
   { path: '/adaption', key: 'adaption', title: 'Adaption', phase: 'Planned for Phase 8', icon: 'diagram-3', description: 'See how Adaption contributes to the project data workflow and review run details here.' },
 ];
 
