@@ -246,7 +246,7 @@ the app's structured labels with its runtime LLM using the same schema.
 
 ## 6. Current phase status and next actions
 
-**Current phase: Phase 8 — Adaption page/polish. Phase 6 (priorities and recommendations) and Phase 7 (issue tracking and reports) implementations are complete and pushed to `origin/main`.**
+**Current phase: Phase 9 — Final check and cleanup. Phase 8 (Adaption page) and Phase 9 (README & verification) are complete and pushed to `origin/main`.**
 Before Phase 4 live feedback verification on 2026-10-12, the live database
 contained 7,014 feedback entries, 332 unique texts, 320 cached analyses, and 3
 Adaption runs. See the Phase 3 completion report below for added test data and
@@ -271,6 +271,8 @@ remaining deployment-check limitations.
 | Phase 5 dashboard | Complete and pushed to `origin/main`; KPI cards, sentiment/topic charts, date trends, rising issues, shared filters, and simulated-data disclosure are implemented. The owner reported the dashboard working locally. Render deployment and some edge-state visual checks remain unverified. |
 | Phase 6 priorities & recommendations | Complete and pushed to `origin/main` (`2b00367`); pure scoring function, explainable 4-factor formula, 16 topic recommendations, evidence quotes, Adaption suggested actions, GET /api/priorities, GET /insights. |
 | Phase 7 issue tracking & reports | Complete and pushed to `origin/main` (`802bb82`); issue creation, status transitions, report snapshot generation with token, executive summary bullets, public read-only report view (/r/:token), print-to-PDF layout. |
+| Phase 8 Adaption page | Complete and pushed to `origin/main` (`53cbe79`); `GET /adaption`, horizontal responsive pipeline flow, run cards, live DB counts, configuration notes, honest evaluation notes. |
+| Phase 9 README & final check | Complete and pushed to `origin/main` (`6c27cc8`); comprehensive `README.md` with live Render URL, setup, test, and route documentation; verification of case sensitivity, secret sanitization, and 47 passing tests. |
 
 ### Phase 2 simulated sample rules
 
@@ -582,15 +584,21 @@ full run was launched.
   values. Use the same `--anchor <ISO date-time>` value for dry/write/verify.
 - `/health` returns collection counts when connected; counts are `null` if
   the database is disconnected or count queries fail.
-- Current phase: **Phase 6 — priorities and recommendations**.
+- Current phase: **Phase 9 — Final check and cleanup (Complete)**.
+
+### Phase 8 & Phase 9 completion report (Adaption Page, README, and Final Submission Check)
+
+- **State:** Complete and pushed to `origin/main`.
+- **Live URL:** `https://insightflow-ogl7.onrender.com/` (Render deployment).
+- **Deadline note:** Final hours of 48-hour hackathon (Build Battle 2026). All core roadmap phases (0 through 9) implemented, documented, and verified.
+- **Accomplishments:**
+  - Implemented `GET /adaption` and `views/pages/adaption.ejs` displaying live MongoDB Atlas counts, deduplication metrics, a responsive CSS pipeline flow (stacks vertically on mobile), Adaption run result cards (smoke test, labels retest, canonical evaluation), iteration documentation (34% to 100% summary length compliance), and runtime similarity classifier disclosure.
+  - Wrote comprehensive, truthful `README.md` reflecting actual codebase routes, setup instructions, deterministic seed commands, test runner commands, truthful Adaption evaluation reporting, and simulated data disclosure.
+  - Added Phase 8 unit/integration tests (`test/phase8.test.js`) bringing the test suite to 47 passing tests (`node --test`).
+  - Verified repository safety: `.env` is uncommitted, no credentials or secrets exist in git, require paths adhere to Linux case-sensitivity, and no leftover debug dumps exist.
 
 After a phase, commit only reviewed intended files, update the progress log,
 record decisions/contract changes/known issues, and include a concise phase
 report: files, run/verification commands, contract changes, issues, and exact
 next step. Before pushing, inspect `git status`, stage explicitly, and ensure
 no secrets or temporary outputs are staged.
-
-Open decisions not yet resolved in the supplied project context: which free
-runtime LLM provider to use (Gemini Flash was the default candidate), whether
-Adaption credits are visible in the account, the 48-hour start/deadline, and
-Render versus Railway hosting. Do not invent answers.
