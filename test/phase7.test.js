@@ -178,3 +178,4 @@ test('report-view.ejs renders complete business-friendly document without admin 
   assert.ok(!html.includes('href="/import"'), 'Admin links should not appear in report view');
   assert.ok(!html.includes('href="/dashboard"'), 'Admin links should not appear in report view');
 });
+

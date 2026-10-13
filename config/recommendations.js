@@ -80,3 +80,4 @@ for (const item of taxonomy) {
 }
 
 module.exports = recommendations;
+
