@@ -70,6 +70,7 @@ router.get('/priorities', async (req, res) => {
   try {
     res.json(await getPriorities(req.query));
   } catch (error) {
+    console.error('API /api/priorities error:', error);
     sendAnalyticsError(res, error);
   }
 });

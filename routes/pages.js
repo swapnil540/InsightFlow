@@ -302,8 +302,10 @@ router.get('/insights', async (req, res) => {
       selectedPreset: req.query.preset || (req.query.from || req.query.to ? '' : '90'),
       categories: CATEGORY_VALUES,
       notice,
+      loadError: null,
     });
   } catch (error) {
+    console.error('Failed to load priorities for /insights:', error);
     res.render('pages/insights', {
       pageTitle: 'Priorities & Recommendations',
       activeNav: 'insights',
@@ -315,7 +317,7 @@ router.get('/insights', async (req, res) => {
       selectedPreset: req.query.preset || '90',
       categories: CATEGORY_VALUES,
       notice: null,
-      error: error.message,
+      loadError: 'Could not load priorities',
     });
   }
 });

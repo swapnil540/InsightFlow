@@ -222,3 +222,30 @@ test('insights.ejs renders cleanly with stub data', async () => {
   assert.ok(html.includes('Scam review quote'));
   assert.ok(html.includes('Tracked'));
 });
+
+test('insights.ejs renders error state with retry button when loadError is present', async () => {
+  const ejs = require('ejs');
+  const path = require('path');
+  const templatePath = path.join(__dirname, '../views/pages/insights.ejs');
+  const html = await ejs.renderFile(templatePath, {
+    window: { from: null, to: null, days: 0 },
+    priorities: [],
+    topPriorities: [],
+    trackedSet: new Set(),
+    selectedCategory: '',
+    selectedPreset: '90',
+    categories: ['Customer Service', 'Fraud and Scam', 'Operational Issues', 'Product Feedback'],
+    notice: null,
+    loadError: 'Could not load priorities',
+  });
+  assert.ok(html.includes('Could not load priorities'));
+  assert.ok(html.includes('Retry'));
+  assert.ok(!html.includes('No high-priority issues found'));
+});
+
+test('statsService exports required functions for priorityService', () => {
+  const statsService = require('../services/statsService');
+  assert.equal(typeof statsService.latestCreatedAt, 'function');
+  assert.equal(typeof statsService.buildAttributeFilter, 'function');
+});
+

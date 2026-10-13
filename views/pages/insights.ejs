@@ -101,7 +101,18 @@
     </div>
   </div>
 
-  <% if (!priorities || priorities.length === 0) { %>
+  <% if (typeof loadError !== 'undefined' && loadError) { %>
+    <div class="card border-0 shadow-sm p-5 text-center my-4 bg-light">
+      <div class="text-danger mb-3"><i class="bi bi-exclamation-triangle-fill fs-1"></i></div>
+      <h4 class="text-danger"><%= loadError %></h4>
+      <p class="text-muted">An error occurred while calculating issue priorities. Please try again.</p>
+      <div>
+        <a href="/insights" class="btn btn-outline-danger btn-sm">
+          <i class="bi bi-arrow-clockwise me-1"></i>Retry
+        </a>
+      </div>
+    </div>
+  <% } else if (!priorities || priorities.length === 0) { %>
     <div class="card border-0 shadow-sm p-5 text-center my-4">
       <div class="text-muted mb-3"><i class="bi bi-inbox fs-1"></i></div>
       <h4>No high-priority issues found</h4>
