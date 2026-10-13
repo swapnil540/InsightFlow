@@ -246,9 +246,7 @@ the app's structured labels with its runtime LLM using the same schema.
 
 ## 6. Current phase status and next actions
 
-**Current phase: Phase 6 — priorities and recommendations. Phase 5 dashboard
-implementation is complete and pushed to `origin/main`; deployment verification
-is pending.**
+**Current phase: Phase 8 — Adaption page/polish. Phase 6 (priorities and recommendations) and Phase 7 (issue tracking and reports) implementations are complete and pushed to `origin/main`.**
 Before Phase 4 live feedback verification on 2026-10-12, the live database
 contained 7,014 feedback entries, 332 unique texts, 320 cached analyses, and 3
 Adaption runs. See the Phase 3 completion report below for added test data and
@@ -271,6 +269,8 @@ remaining deployment-check limitations.
 | Phase 3 app shell and feedback management | Complete and pushed. The live app supports feedback search/filtering, grouped/all views, manual entry, CSV preview/import, and safe sample loading. `npm test` passes (16 tests); live `/health` reports 7,014 feedbacks, 320 analyses, and 3 Adaption runs. |
 | Phase 4 runtime analysis | Classifier, leave-one-out evaluation, Mongo cache/API, add-feedback result, and CSV analysis are implemented and locally verified. Live Render add-feedback verification passed; CSV and API live flows remain unverified. Commits are listed in section 13. |
 | Phase 5 dashboard | Complete and pushed to `origin/main`; KPI cards, sentiment/topic charts, date trends, rising issues, shared filters, and simulated-data disclosure are implemented. The owner reported the dashboard working locally. Render deployment and some edge-state visual checks remain unverified. |
+| Phase 6 priorities & recommendations | Complete and pushed to `origin/main` (`2b00367`); pure scoring function, explainable 4-factor formula, 16 topic recommendations, evidence quotes, Adaption suggested actions, GET /api/priorities, GET /insights. |
+| Phase 7 issue tracking & reports | Complete and pushed to `origin/main` (`802bb82`); issue creation, status transitions, report snapshot generation with token, executive summary bullets, public read-only report view (/r/:token), print-to-PDF layout. |
 
 ### Phase 2 simulated sample rules
 
@@ -294,6 +294,36 @@ Full-run estimate response: `estimated_credits_consumed: 4.0`,
 full run was launched.
 
 ## 13. Phase completion reports
+
+### Phase 6 & Phase 7 completion report (Priorities, Recommendations, Issue Tracking, and Reports)
+
+- **State:** complete and pushed to `origin/main`. Commits: `2b00367` (Priorities and recommendations) and `802bb82` (Issues and reports).
+- **Files added/updated:**
+  - `config/recommendations.js`: deterministic, topic-specific action plans and team mappings for all 16 taxonomy topics.
+  - `services/priorityService.js`: pure scoring function `scoreTopics(rows, opts)`, single-aggregation database query `getPriorities(query)`.
+  - `services/issueService.js`: issue creation with topic validation and deduplication, listing with status counts, and status/owner/note updates.
+  - `services/reportService.js`: snapshot payload builder with 3 auto-generated executive summary bullets, random hex token generation, and report retrieval.
+  - `routes/api.js`: added `GET /api/priorities` with shared filter validation and optional limit.
+  - `routes/pages.js`: wired `GET /insights`, `POST /issues`, `GET /issues`, `POST /issues/:id`, `GET /reports`, `POST /reports`, `GET /r/:token`.
+  - `views/pages/insights.ejs`: priorities page with top-5 cards, 4-factor progress bars with raw metrics, "Why this matters" explanation sentence, evidence quotes, recommendations, Adaption suggestions, "Track issue" action, compact table of all ranked topics, and collapsible formula explainer.
+  - `views/pages/issues.ejs`: tracked issues table with status filter pills (All, Open, Investigating, Resolved), owner assignment, notes editing, and empty state.
+  - `views/pages/reports.ejs`: report generator form and list of saved snapshots with view and share links.
+  - `views/pages/report-view.ejs`: read-only, business-friendly executive briefing without admin navbar, featuring executive summary bullets, KPI strip, recommendations, evidence quotes, tracked work, `@media print` print-to-PDF stylesheet, and `<meta name="robots" content="noindex">`.
+  - `test/phase6.test.js`: unit tests for scoring order, factor bounds [0, 1], trend clamp, 5-complaint threshold, explanation formatting, and template rendering.
+  - `test/phase7.test.js`: unit tests for executive summary generation, status enums, and template rendering for issues, reports, and public report view.
+- **Score formula:**
+  `priority = round(100 * (0.35 * volume + 0.30 * negativity + 0.20 * severity + 0.15 * trend))`
+  - Volume (35%): `complaints(topic) / max complaints across topics`
+  - Negativity (30%): `(negative + mixed mentions) / all mentions of topic`
+  - Severity (20%): `average complaint severity / 5`
+  - Trend (15%): `clamp((recent14 - prev14) / max(prev14, 10), 0, 1)`
+  - Eligibility threshold: only topics with at least 5 complaints are ranked.
+- **What was skipped:**
+  - Live external LLM calls were omitted in favor of deterministic, grounded recommendations based on verified taxonomy actions.
+  - No additional npm dependencies were introduced; CommonJS and Mongoose models were preserved.
+- **Verification:**
+  - `npm test` runs 45 tests across Phase 2 through Phase 7 suites (45 passing, 0 failing) locally without connecting to Atlas.
+  - Templates rendered cleanly with EJS test assertions.
 
 ### Phase 5 completion report
 
@@ -495,11 +525,8 @@ full run was launched.
 - **Phase 4 — runtime analysis:** implementation complete; similar adapted
   examples, hash cache, API, feedback/import hooks, failure fallback, producer
   badge. Optional LLM fallback remains unimplemented.
-- **Phase 5 — dashboard:** complete; see Phase 5 completion report.
-- **Phase 6 — priorities/recommendations:** explainable score, evidence quotes,
-  grounded recommendations with a fallback.
-- **Phase 7 — issue tracking/reports:** status, owner, notes, report snapshot,
-  public share token, print-to-PDF.
+- **Phase 6 — priorities/recommendations:** complete; explainable 4-factor score, evidence quotes, recommendations, GET /api/priorities, GET /insights.
+- **Phase 7 — issue tracking/reports:** complete; status transitions, owner, notes, report snapshot generation, public share token /r/:token, print-to-PDF layout.
 - **Phase 8 — Adaption page/polish:** visible pipeline, status and quality,
   accessibility, mobile and failure-state polish.
 - **Phase 9 — deploy/submission:** production seed/env check, responsive test,
