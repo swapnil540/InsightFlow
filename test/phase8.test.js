@@ -95,3 +95,4 @@ test('adaption.ejs template handles empty adaption runs gracefully', async () =>
   assert.ok(html.includes('Adaption runs are currently empty or loading.'));
   assert.ok(html.includes('Demo data: dates and sources are simulated.'));
 });
+
